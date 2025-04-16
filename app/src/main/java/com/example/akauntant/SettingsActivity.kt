@@ -16,6 +16,7 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.SwitchCompat
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
 import com.google.android.material.button.MaterialButton
@@ -39,6 +40,9 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var btnSaveSettings: MaterialButton
     private lateinit var btnBackupData: MaterialButton
     private lateinit var btnRestoreData: MaterialButton
+    private lateinit var switchNotifications: SwitchCompat
+    private lateinit var switchBudgetAlert: SwitchCompat
+    private lateinit var switchDailyReminders: SwitchCompat
     
     private var monthlyBudget: Double = 0.0
     private var selectedCurrency: String = "$"
@@ -46,7 +50,8 @@ class SettingsActivity : AppCompatActivity() {
     // Permission handling
     private var pendingAction: (() -> Unit)? = null
     
-    private val requestPermissionLauncher = registerForActivityResult(
+    // Permission launchers for storage and notifications
+    private val requestStoragePermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         val allGranted = permissions.entries.all { it.value }
@@ -57,6 +62,40 @@ class SettingsActivity : AppCompatActivity() {
             Toast.makeText(
                 this,
                 "Storage permission is required for backup/restore functionality",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+    
+    // Permission launcher for notifications
+    private val requestNotificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            // Notifications permission granted
+            switchNotifications.isChecked = true
+            sharedPreferences.edit()
+                .putBoolean(NOTIFICATIONS_KEY, true)
+                .apply()
+            
+            // Enable the other notification toggles
+            switchBudgetAlert.isEnabled = true
+            switchDailyReminders.isEnabled = true
+            
+        } else {
+            // Notifications permission denied
+            switchNotifications.isChecked = false
+            sharedPreferences.edit()
+                .putBoolean(NOTIFICATIONS_KEY, false)
+                .apply()
+            
+            // Disable other notification toggles
+            switchBudgetAlert.isEnabled = false
+            switchDailyReminders.isEnabled = false
+            
+            Toast.makeText(
+                this,
+                "Notification permission is required for alerts",
                 Toast.LENGTH_LONG
             ).show()
         }
@@ -81,6 +120,12 @@ class SettingsActivity : AppCompatActivity() {
         btnSaveSettings = findViewById(R.id.btnSaveSettings)
         btnBackupData = findViewById(R.id.btnBackupData)
         btnRestoreData = findViewById(R.id.btnRestoreData)
+        switchNotifications = findViewById(R.id.switchNotifications)
+        switchBudgetAlert = findViewById(R.id.switchBudgetAlert)
+        switchDailyReminders = findViewById(R.id.switchDailyReminders)
+        
+        // Create notification channels
+        NotificationService.createNotificationChannels(this)
         
         // Setup currency dropdown
         setupCurrencyDropdown()
@@ -115,6 +160,20 @@ class SettingsActivity : AppCompatActivity() {
         // Load currency
         selectedCurrency = sharedPreferences.getString(CURRENCY_KEY, "$") ?: "$"
         spinnerCurrency.setText(selectedCurrency, false)
+
+        // Load notification setting
+        val notificationsEnabled = sharedPreferences.getBoolean(NOTIFICATIONS_KEY, false)
+        switchNotifications.isChecked = notificationsEnabled
+
+        // Load budget alert setting
+        val budgetAlertEnabled = sharedPreferences.getBoolean(BUDGET_ALERT_KEY, false)
+        switchBudgetAlert.isChecked = budgetAlertEnabled
+        switchBudgetAlert.isEnabled = notificationsEnabled
+
+        // Load daily reminders setting
+        val dailyRemindersEnabled = sharedPreferences.getBoolean(DAILY_REMINDERS_KEY, false)
+        switchDailyReminders.isChecked = dailyRemindersEnabled
+        switchDailyReminders.isEnabled = notificationsEnabled
     }
     
     private fun setupButtonListeners() {
@@ -150,6 +209,33 @@ class SettingsActivity : AppCompatActivity() {
         spinnerCurrency.setOnItemClickListener { _, _, position, _ ->
             val currencies = arrayOf("$", "€", "£", "¥", "₹")
             selectedCurrency = currencies[position]
+        }
+
+        switchNotifications.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) {
+                // Request notification permission
+                requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            } else {
+                sharedPreferences.edit()
+                    .putBoolean(NOTIFICATIONS_KEY, false)
+                    .apply()
+                
+                // Disable other notification toggles
+                switchBudgetAlert.isEnabled = false
+                switchDailyReminders.isEnabled = false
+            }
+        }
+
+        switchBudgetAlert.setOnCheckedChangeListener { _, isChecked ->
+            sharedPreferences.edit()
+                .putBoolean(BUDGET_ALERT_KEY, isChecked)
+                .apply()
+        }
+
+        switchDailyReminders.setOnCheckedChangeListener { _, isChecked ->
+            sharedPreferences.edit()
+                .putBoolean(DAILY_REMINDERS_KEY, isChecked)
+                .apply()
         }
     }
     
@@ -218,7 +304,7 @@ class SettingsActivity : AppCompatActivity() {
             // For API 33+, we need READ_MEDIA_IMAGES permission
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES) 
                 != PackageManager.PERMISSION_GRANTED) {
-                requestPermissionLauncher.launch(arrayOf(Manifest.permission.READ_MEDIA_IMAGES))
+                requestStoragePermissionLauncher.launch(arrayOf(Manifest.permission.READ_MEDIA_IMAGES))
             } else {
                 action()
             }
@@ -226,7 +312,7 @@ class SettingsActivity : AppCompatActivity() {
             // For API 30-32, we need READ_EXTERNAL_STORAGE permission
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) 
                 != PackageManager.PERMISSION_GRANTED) {
-                requestPermissionLauncher.launch(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE))
+                requestStoragePermissionLauncher.launch(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE))
             } else {
                 action()
             }
@@ -238,7 +324,7 @@ class SettingsActivity : AppCompatActivity() {
                 this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
                 
             if (!readPermission || !writePermission) {
-                requestPermissionLauncher.launch(arrayOf(
+                requestStoragePermissionLauncher.launch(arrayOf(
                     Manifest.permission.READ_EXTERNAL_STORAGE,
                     Manifest.permission.WRITE_EXTERNAL_STORAGE
                 ))
@@ -413,5 +499,8 @@ class SettingsActivity : AppCompatActivity() {
     companion object {
         const val MONTHLY_BUDGET_KEY = "monthly_budget"
         const val CURRENCY_KEY = "currency"
+        const val NOTIFICATIONS_KEY = "notifications"
+        const val BUDGET_ALERT_KEY = "budget_alert"
+        const val DAILY_REMINDERS_KEY = "daily_reminders"
     }
 }

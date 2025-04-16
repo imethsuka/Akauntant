@@ -237,6 +237,98 @@
 
                 </androidx.constraintlayout.widget.ConstraintLayout>
             </com.google.android.material.card.MaterialCardView>
+            
+            <!-- Notification Settings Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/notificationSettingsCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp"
+                app:layout_constraintTop_toBottomOf="@id/dataManagementCard">
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:id="@+id/tvNotificationSettings"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Notification Settings"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <!-- Enable Notifications Switch -->
+                    <TextView
+                        android:id="@+id/tvEnableNotifications"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:layout_marginEnd="16dp"
+                        android:text="Enable Notifications"
+                        android:textSize="15sp"
+                        app:layout_constraintEnd_toStartOf="@+id/switchNotifications"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/tvNotificationSettings" />
+
+                    <androidx.appcompat.widget.SwitchCompat
+                        android:id="@+id/switchNotifications"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="@id/tvEnableNotifications"
+                        app:layout_constraintBottom_toBottomOf="@id/tvEnableNotifications" />
+
+                    <!-- Budget Alert Switch -->
+                    <TextView
+                        android:id="@+id/tvBudgetAlert"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="24dp"
+                        android:layout_marginEnd="16dp"
+                        android:text="Send alerts when budget limit exceeds"
+                        android:textSize="15sp"
+                        app:layout_constraintEnd_toStartOf="@+id/switchBudgetAlert"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/tvEnableNotifications" />
+
+                    <androidx.appcompat.widget.SwitchCompat
+                        android:id="@+id/switchBudgetAlert"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="@id/tvBudgetAlert"
+                        app:layout_constraintBottom_toBottomOf="@id/tvBudgetAlert" />
+
+                    <!-- Daily Reminder Switch -->
+                    <TextView
+                        android:id="@+id/tvDailyReminders"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="24dp"
+                        android:layout_marginEnd="16dp"
+                        android:text="Daily reminders to add transactions"
+                        android:textSize="15sp"
+                        app:layout_constraintEnd_toStartOf="@+id/switchDailyReminders"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/tvBudgetAlert" />
+
+                    <androidx.appcompat.widget.SwitchCompat
+                        android:id="@+id/switchDailyReminders"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="@id/tvDailyReminders"
+                        app:layout_constraintBottom_toBottomOf="@id/tvDailyReminders" />
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- Save Settings Button -->
             <com.google.android.material.button.MaterialButton
@@ -253,7 +345,7 @@
                 app:icon="@android:drawable/ic_menu_save"
                 app:iconGravity="textStart"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/dataManagementCard" />
+                app:layout_constraintTop_toBottomOf="@id/notificationSettingsCard" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.core.widget.NestedScrollView>
