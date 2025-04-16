@@ -6,4 +6,12 @@
     </style>
 
     <style name="Theme.Akauntant" parent="Base.Theme.Akauntant" />
+    
+    <!-- Splash screen theme without action bar -->
+    <style name="Theme.Akauntant.NoActionBar" parent="Theme.Akauntant">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+    </style>
 </resources>
