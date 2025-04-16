@@ -5,13 +5,17 @@
         android:icon="@android:drawable/ic_menu_compass"
         android:title="Dashboard" />
     <item
+        android:id="@+id/navigation_history"
+        android:icon="@android:drawable/ic_menu_recent_history"
+        android:title="History" />
+    <item
         android:id="@+id/navigation_add"
         android:icon="@android:drawable/ic_menu_add"
         android:title="Add" />
     <item
-        android:id="@+id/navigation_history"
-        android:icon="@android:drawable/ic_menu_recent_history"
-        android:title="History" />
+        android:id="@+id/navigation_report"
+        android:icon="@android:drawable/ic_menu_sort_by_size"
+        android:title="Report" />
     <item
         android:id="@+id/navigation_settings"
         android:icon="@android:drawable/ic_menu_preferences"

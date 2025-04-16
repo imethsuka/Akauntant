@@ -20,6 +20,7 @@ import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import org.json.JSONArray
 import org.json.JSONException
 import java.io.File
@@ -95,6 +96,9 @@ class SettingsActivity : AppCompatActivity() {
         
         // Update UI with current budget status
         updateBudgetStatus()
+        
+        // Setup bottom navigation
+        setupBottomNavigation()
     }
     
     private fun setupCurrencyDropdown() {
@@ -345,6 +349,45 @@ class SettingsActivity : AppCompatActivity() {
         return backupDir.listFiles { file ->
             file.isFile && file.name.endsWith(".json")
         }?.sortedByDescending { it.lastModified() } ?: emptyList()
+    }
+    
+    private fun setupBottomNavigation() {
+        val bottomNavigation = findViewById<BottomNavigationView>(R.id.bottomNavigation)
+        bottomNavigation.selectedItemId = R.id.navigation_settings
+        
+        bottomNavigation.setOnItemSelectedListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.navigation_home -> {
+                    startActivity(Intent(this, MainActivity::class.java))
+                    overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
+                    finish()
+                    true
+                }
+                R.id.navigation_history -> {
+                    startActivity(Intent(this, HistoryActivity::class.java))
+                    overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
+                    finish()
+                    true
+                }
+                R.id.navigation_add -> {
+                    startActivity(Intent(this, AddTransactionActivity::class.java))
+                    overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
+                    finish()
+                    true
+                }
+                R.id.navigation_report -> {
+                    startActivity(Intent(this, ReportActivity::class.java))
+                    overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
+                    finish()
+                    true
+                }
+                R.id.navigation_settings -> {
+                    // Already on this screen
+                    true
+                }
+                else -> false
+            }
+        }
     }
     
     override fun onOptionsItemSelected(item: MenuItem): Boolean {

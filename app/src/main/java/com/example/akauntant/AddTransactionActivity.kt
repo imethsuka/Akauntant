@@ -19,8 +19,6 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 import android.content.Context
-import org.json.JSONArray
-import org.json.JSONObject
 
 class AddTransactionActivity : AppCompatActivity() {
     
@@ -28,17 +26,13 @@ class AddTransactionActivity : AppCompatActivity() {
     private val calendar = Calendar.getInstance()
     private lateinit var bottomNavigation: BottomNavigationView
     private lateinit var sharedPreferences: SharedPreferences
+    private lateinit var transactionManager: TransactionManager
     
-    // Category lists for income and expense
-    private val incomeCategories = arrayOf(
-        "Salary", "Freelance", "Investments", "Gifts", "Rental Income", "Other Income"
-    )
+    // Track whether we're editing an existing transaction
+    private var isEditMode = false
+    private var transactionId: Long = -1
+    private var existingTransaction: Transaction? = null
     
-    private val expenseCategories = arrayOf(
-        "Food", "Transport", "Housing", "Entertainment", "Healthcare", "Shopping",
-        "Education", "Utilities", "Travel", "Personal Care", "Other Expense"
-    )
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_add_transaction)
@@ -46,11 +40,23 @@ class AddTransactionActivity : AppCompatActivity() {
         // Initialize SharedPreferences
         sharedPreferences = getSharedPreferences(MainActivity.PREFS_NAME, Context.MODE_PRIVATE)
         
+        // Initialize TransactionManager
+        transactionManager = TransactionManager(this)
+        
+        // Check if we're in edit mode
+        transactionId = intent.getLongExtra("TRANSACTION_ID", -1)
+        isEditMode = transactionId != -1L
+        
         // Set up the toolbar with back navigation
         setupToolbar()
         
-        // Set up category dropdown based on transaction type (default to expense)
-        setupCategoryDropdown(expenseCategories)
+        // If editing, load existing transaction data
+        if (isEditMode) {
+            loadExistingTransaction()
+        } else {
+            // Set up category dropdown based on transaction type (default to expense)
+            setupCategoryDropdown(TransactionManager.EXPENSE_CATEGORIES.toTypedArray())
+        }
         
         // Handle radio button changes to update category dropdown
         setupTransactionTypeRadioButtons()
@@ -70,6 +76,59 @@ class AddTransactionActivity : AppCompatActivity() {
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.setDisplayShowHomeEnabled(true)
+        
+        // Update title based on mode
+        supportActionBar?.title = if (isEditMode) "Edit Transaction" else "Add Transaction"
+    }
+    
+    private fun loadExistingTransaction() {
+        val transactions = transactionManager.getAllTransactions()
+        existingTransaction = transactions.find { it.id == transactionId }
+        
+        existingTransaction?.let { transaction ->
+            // Set transaction type
+            val rbIncome = findViewById<MaterialRadioButton>(R.id.rbIncome)
+            val rbExpense = findViewById<MaterialRadioButton>(R.id.rbExpense)
+            
+            if (transaction.isIncome) {
+                rbIncome.isChecked = true
+                setupCategoryDropdown(TransactionManager.INCOME_CATEGORIES.toTypedArray())
+            } else {
+                rbExpense.isChecked = true
+                setupCategoryDropdown(TransactionManager.EXPENSE_CATEGORIES.toTypedArray())
+            }
+            
+            // Set title
+            findViewById<TextInputEditText>(R.id.etTitle).setText(transaction.title)
+            
+            // Set amount
+            findViewById<TextInputEditText>(R.id.etAmount).setText(transaction.amount.toString())
+            
+            // Set category
+            findViewById<AutoCompleteTextView>(R.id.dropdownCategory).setText(transaction.category, false)
+            
+            // Set date
+            findViewById<TextInputEditText>(R.id.etDate).setText(transaction.date)
+            
+            // Parse date to calendar
+            try {
+                val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.US)
+                dateFormat.parse(transaction.date)?.let { date ->
+                    calendar.time = date
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            
+            // Set notes
+            findViewById<TextInputEditText>(R.id.etNotes).setText(transaction.notes)
+            
+            // Update currency symbol
+            updateCurrencyPrefix()
+        } ?: run {
+            Toast.makeText(this, "Failed to load transaction", Toast.LENGTH_SHORT).show()
+            finish()
+        }
     }
     
     private fun setupBottomNavigation() {
@@ -84,12 +143,18 @@ class AddTransactionActivity : AppCompatActivity() {
                     finish()
                     true
                 }
+                R.id.navigation_history -> {
+                    startActivity(Intent(this, HistoryActivity::class.java))
+                    overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
+                    finish()
+                    true
+                }
                 R.id.navigation_add -> {
                     // Already on this screen
                     true
                 }
-                R.id.navigation_history -> {
-                    startActivity(Intent(this, HistoryActivity::class.java))
+                R.id.navigation_report -> {
+                    startActivity(Intent(this, ReportActivity::class.java))
                     overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
                     finish()
                     true
@@ -110,8 +175,8 @@ class AddTransactionActivity : AppCompatActivity() {
         val dropdownCategory = findViewById<AutoCompleteTextView>(R.id.dropdownCategory)
         dropdownCategory.setAdapter(adapter)
         
-        // Set default selection
-        if (categories.isNotEmpty()) {
+        // Set default selection if not in edit mode or if category is empty
+        if (!isEditMode && categories.isNotEmpty()) {
             dropdownCategory.setText(categories[0], false)
         }
     }
@@ -122,7 +187,7 @@ class AddTransactionActivity : AppCompatActivity() {
         
         rbIncome.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
-                setupCategoryDropdown(incomeCategories)
+                setupCategoryDropdown(TransactionManager.INCOME_CATEGORIES.toTypedArray())
                 
                 // Update currency symbol in amount field
                 updateCurrencyPrefix()
@@ -131,7 +196,7 @@ class AddTransactionActivity : AppCompatActivity() {
         
         rbExpense.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
-                setupCategoryDropdown(expenseCategories)
+                setupCategoryDropdown(TransactionManager.EXPENSE_CATEGORIES.toTypedArray())
                 
                 // Update currency symbol in amount field
                 updateCurrencyPrefix()
@@ -141,8 +206,7 @@ class AddTransactionActivity : AppCompatActivity() {
     
     private fun updateCurrencyPrefix() {
         val tilAmount = findViewById<TextInputLayout>(R.id.tilAmount)
-        val currencyText = sharedPreferences.getString(MainActivity.PREF_CURRENCY, "USD ($)")
-        val currencySymbol = getCurrencySymbol(currencyText ?: "USD ($)")
+        val currencySymbol = getCurrencySymbol(transactionManager.getCurrency())
         tilAmount.prefixText = currencySymbol
     }
     
@@ -163,9 +227,11 @@ class AddTransactionActivity : AppCompatActivity() {
         val etDate = findViewById<TextInputEditText>(R.id.etDate)
         val tilDate = findViewById<TextInputLayout>(R.id.tilDate)
         
-        // Set current date as default
-        val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.US)
-        etDate.setText(dateFormat.format(calendar.time))
+        // Set current date as default if not in edit mode
+        if (!isEditMode) {
+            val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.US)
+            etDate.setText(dateFormat.format(calendar.time))
+        }
         
         // Show date picker when clicking on the field or the icon
         val datePickerDialog = { 
@@ -173,6 +239,8 @@ class AddTransactionActivity : AppCompatActivity() {
                 calendar.set(Calendar.YEAR, year)
                 calendar.set(Calendar.MONTH, month)
                 calendar.set(Calendar.DAY_OF_MONTH, day)
+                
+                val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.US)
                 etDate.setText(dateFormat.format(calendar.time))
             }
             
@@ -194,6 +262,9 @@ class AddTransactionActivity : AppCompatActivity() {
     private fun setupSaveButton() {
         val btnSaveTransaction = findViewById<MaterialButton>(R.id.btnSaveTransaction)
         
+        // Update button text based on mode
+        btnSaveTransaction.text = if (isEditMode) "Update Transaction" else "Save Transaction"
+        
         btnSaveTransaction.setOnClickListener {
             if (validateInputs()) {
                 // Get all the input values
@@ -204,61 +275,71 @@ class AddTransactionActivity : AppCompatActivity() {
                 val date = findViewById<TextInputEditText>(R.id.etDate).text.toString()
                 val notes = findViewById<TextInputEditText>(R.id.etNotes).text.toString()
                 
-                // Save transaction to SharedPreferences
-                saveTransaction(isIncome, title, amount, category, date, notes)
-                
-                // Show success message
-                val transactionType = if (isIncome) "Income" else "Expense"
-                Toast.makeText(
-                    this,
-                    "$transactionType transaction saved successfully!",
-                    Toast.LENGTH_SHORT
-                ).show()
+                if (isEditMode && existingTransaction != null) {
+                    // Update existing transaction
+                    val updatedTransaction = existingTransaction!!.copy(
+                        isIncome = isIncome,
+                        title = title,
+                        amount = amount,
+                        category = category,
+                        date = date,
+                        notes = notes
+                    )
+                    
+                    // Save transaction using TransactionManager
+                    val success = transactionManager.updateTransaction(updatedTransaction)
+                    
+                    if (success) {
+                        Toast.makeText(
+                            this,
+                            "Transaction updated successfully!",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    } else {
+                        Toast.makeText(
+                            this,
+                            "Failed to update transaction",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                } else {
+                    // Create transaction object
+                    val transaction = Transaction(
+                        id = System.currentTimeMillis(),
+                        isIncome = isIncome,
+                        title = title,
+                        amount = amount,
+                        category = category,
+                        date = date,
+                        notes = notes,
+                        timestamp = System.currentTimeMillis()
+                    )
+                    
+                    // Save transaction using TransactionManager
+                    val success = transactionManager.addTransaction(transaction)
+                    
+                    if (success) {
+                        // Show success message
+                        val transactionType = if (isIncome) "Income" else "Expense"
+                        Toast.makeText(
+                            this,
+                            "$transactionType transaction saved successfully!",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    } else {
+                        Toast.makeText(
+                            this,
+                            "Failed to save transaction",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
                 
                 // Return to main activity
                 startActivity(Intent(this, MainActivity::class.java))
                 overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
                 finish()
             }
-        }
-    }
-    
-    private fun saveTransaction(
-        isIncome: Boolean,
-        title: String,
-        amount: Double,
-        category: String,
-        date: String,
-        notes: String
-    ) {
-        try {
-            // Create a JSON object for the transaction
-            val transaction = JSONObject().apply {
-                put("id", System.currentTimeMillis())
-                put("isIncome", isIncome)
-                put("title", title)
-                put("amount", amount)
-                put("category", category)
-                put("date", date)
-                put("notes", notes)
-                put("timestamp", System.currentTimeMillis())
-            }
-            
-            // Get existing transactions JSON array or create a new one
-            val transactionsString = sharedPreferences.getString(MainActivity.TRANSACTIONS_PREF, "[]")
-            val transactionsArray = JSONArray(transactionsString)
-            
-            // Add the new transaction
-            transactionsArray.put(transaction)
-            
-            // Save back to SharedPreferences
-            sharedPreferences.edit()
-                .putString(MainActivity.TRANSACTIONS_PREF, transactionsArray.toString())
-                .apply()
-                
-        } catch (e: Exception) {
-            e.printStackTrace()
-            Toast.makeText(this, "Failed to save transaction", Toast.LENGTH_SHORT).show()
         }
     }
     

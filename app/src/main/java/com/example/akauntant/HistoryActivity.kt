@@ -37,6 +37,7 @@ class HistoryActivity : AppCompatActivity(), TransactionAdapter.OnTransactionCli
     private lateinit var adapter: TransactionAdapter
     private lateinit var sharedPreferences: SharedPreferences
     private lateinit var bottomNavigation: BottomNavigationView
+    private lateinit var transactionManager: TransactionManager
     
     // Permission handling
     private var pendingAction: (() -> Unit)? = null
@@ -63,6 +64,9 @@ class HistoryActivity : AppCompatActivity(), TransactionAdapter.OnTransactionCli
         
         // Initialize SharedPreferences
         sharedPreferences = getSharedPreferences(MainActivity.PREFS_NAME, Context.MODE_PRIVATE)
+        
+        // Initialize TransactionManager
+        transactionManager = TransactionManager(this)
 
         // Setup toolbar
         val toolbar = findViewById<Toolbar>(R.id.toolbar)
@@ -107,14 +111,20 @@ class HistoryActivity : AppCompatActivity(), TransactionAdapter.OnTransactionCli
                     finish()
                     true
                 }
+                R.id.navigation_history -> {
+                    // Already on this screen
+                    true
+                }
                 R.id.navigation_add -> {
                     startActivity(Intent(this, AddTransactionActivity::class.java))
                     overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
                     finish()
                     true
                 }
-                R.id.navigation_history -> {
-                    // Already on this screen
+                R.id.navigation_report -> {
+                    startActivity(Intent(this, ReportActivity::class.java))
+                    overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
+                    finish()
                     true
                 }
                 R.id.navigation_settings -> {
@@ -129,37 +139,19 @@ class HistoryActivity : AppCompatActivity(), TransactionAdapter.OnTransactionCli
     }
     
     private fun loadTransactions() {
-        try {
-            val transactionsString = sharedPreferences.getString(MainActivity.TRANSACTIONS_PREF, "[]")
-            val transactionsArray = JSONArray(transactionsString)
-            
-            val transactions = mutableListOf<Transaction>()
-            
-            for (i in 0 until transactionsArray.length()) {
-                val transactionObject = transactionsArray.getJSONObject(i)
-                val transaction = Transaction.fromJson(transactionObject)
-                transactions.add(transaction)
-            }
-            
-            // Sort transactions by timestamp (most recent first)
-            transactions.sortByDescending { it.timestamp }
-            
-            // Update adapter
-            adapter.submitList(transactions)
-            
-            // Show/hide empty state
-            if (transactions.isEmpty()) {
-                tvNoTransactions.visibility = View.VISIBLE
-                recyclerView.visibility = View.GONE
-            } else {
-                tvNoTransactions.visibility = View.GONE
-                recyclerView.visibility = View.VISIBLE
-            }
-            
-        } catch (e: JSONException) {
-            e.printStackTrace()
+        // Use TransactionManager to get transactions instead of directly accessing SharedPreferences
+        val transactions = transactionManager.getAllTransactions()
+        
+        // Update adapter
+        adapter.submitList(transactions)
+        
+        // Show/hide empty state
+        if (transactions.isEmpty()) {
             tvNoTransactions.visibility = View.VISIBLE
             recyclerView.visibility = View.GONE
+        } else {
+            tvNoTransactions.visibility = View.GONE
+            recyclerView.visibility = View.VISIBLE
         }
     }
     
@@ -178,8 +170,11 @@ class HistoryActivity : AppCompatActivity(), TransactionAdapter.OnTransactionCli
         val dialogBuilder = AlertDialog.Builder(this)
         dialogBuilder.setTitle(transaction.title)
         
+        // Get currency symbol from TransactionManager
+        val currencySymbol = getCurrencySymbol(transactionManager.getCurrency())
+        
         val message = StringBuilder()
-            .append("Amount: ${if (transaction.isIncome) "+" else "-"}$${String.format("%.2f", transaction.amount)}\n")
+            .append("Amount: ${if (transaction.isIncome) "+" else "-"}$currencySymbol${String.format("%.2f", transaction.amount)}\n")
             .append("Category: ${transaction.category}\n")
             .append("Date: ${transaction.date}\n")
             .append("Notes: ${transaction.notes}")
@@ -201,7 +196,10 @@ class HistoryActivity : AppCompatActivity(), TransactionAdapter.OnTransactionCli
                 when (which) {
                     0 -> {
                         // Edit transaction
-                        // In a real app you'd open AddTransactionActivity with the transaction data
+                        val intent = Intent(this, AddTransactionActivity::class.java)
+                        intent.putExtra("TRANSACTION_ID", transaction.id)
+                        startActivity(intent)
+                        overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
                     }
                     1 -> {
                         // Delete transaction
@@ -218,30 +216,15 @@ class HistoryActivity : AppCompatActivity(), TransactionAdapter.OnTransactionCli
             .setTitle("Delete Transaction")
             .setMessage("Are you sure you want to delete this transaction?")
             .setPositiveButton("Delete") { _, _ ->
-                // Remove from SharedPreferences
-                try {
-                    val transactionsString = sharedPreferences.getString(MainActivity.TRANSACTIONS_PREF, "[]")
-                    val transactionsArray = JSONArray(transactionsString)
-                    val newTransactionsArray = JSONArray()
-                    
-                    // Copy all transactions except the one to delete
-                    for (i in 0 until transactionsArray.length()) {
-                        val transactionObject = transactionsArray.getJSONObject(i)
-                        if (transactionObject.optLong("id") != transaction.id) {
-                            newTransactionsArray.put(transactionObject)
-                        }
-                    }
-                    
-                    // Save back to SharedPreferences
-                    sharedPreferences.edit()
-                        .putString(MainActivity.TRANSACTIONS_PREF, newTransactionsArray.toString())
-                        .apply()
-                    
+                // Use TransactionManager to delete the transaction
+                val success = transactionManager.deleteTransaction(transaction)
+                
+                if (success) {
                     // Reload transactions
                     loadTransactions()
-                    
-                } catch (e: JSONException) {
-                    e.printStackTrace()
+                    Toast.makeText(this, "Transaction deleted successfully", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "Failed to delete transaction", Toast.LENGTH_SHORT).show()
                 }
             }
             .setNegativeButton("Cancel", null)
@@ -321,22 +304,18 @@ class HistoryActivity : AppCompatActivity(), TransactionAdapter.OnTransactionCli
 
     private fun backupTransactions() {
         try {
-            val transactionsString = sharedPreferences.getString(MainActivity.TRANSACTIONS_PREF, "[]")
-            if (transactionsString.isNullOrEmpty() || transactionsString == "[]") {
+            // Use TransactionManager to backup transactions
+            val backupPath = transactionManager.backupTransactions()
+            
+            if (backupPath != null) {
+                Toast.makeText(
+                    this, 
+                    "Backup saved successfully", 
+                    Toast.LENGTH_LONG
+                ).show()
+            } else {
                 Toast.makeText(this, "No transactions to backup", Toast.LENGTH_SHORT).show()
-                return
             }
-            
-            val backupFile = createBackupFile()
-            FileOutputStream(backupFile).use { output ->
-                output.write(transactionsString.toByteArray())
-            }
-            
-            Toast.makeText(
-                this, 
-                "Backup saved to: ${backupFile.name}", 
-                Toast.LENGTH_LONG
-            ).show()
         } catch (e: IOException) {
             e.printStackTrace()
             Toast.makeText(this, "Backup failed: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -420,5 +399,18 @@ class HistoryActivity : AppCompatActivity(), TransactionAdapter.OnTransactionCli
         return backupDir.listFiles { file ->
             file.isFile && file.name.endsWith(".json")
         }?.sortedByDescending { it.lastModified() } ?: emptyList()
+    }
+
+    private fun getCurrencySymbol(currencyText: String): String {
+        return when {
+            currencyText.contains("$") -> "$"
+            currencyText.contains("€") -> "€"
+            currencyText.contains("£") -> "£"
+            currencyText.contains("¥") -> "¥"
+            currencyText.contains("₹") -> "₹"
+            currencyText.contains("RM") -> "RM"
+            currencyText.contains("Fr") -> "Fr"
+            else -> "$"
+        }
     }
 }

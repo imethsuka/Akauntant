@@ -162,11 +162,28 @@ class TransactionManager(private val context: Context) {
         
         return getAllTransactions().filter { transaction ->
             try {
-                val date = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(transaction.date)
-                val transactionCalendar = Calendar.getInstance().apply { time = date!! }
-                transactionCalendar.get(Calendar.MONTH) == currentMonth && 
-                        transactionCalendar.get(Calendar.YEAR) == currentYear
+                // Try parsing with format "MMM dd, yyyy" first
+                var date: Date? = null
+                try {
+                    date = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).parse(transaction.date)
+                } catch (e: Exception) {
+                    // If that fails, try with format "yyyy-MM-dd"
+                    try {
+                        date = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(transaction.date)
+                    } catch (innerE: Exception) {
+                        Log.e("TransactionManager", "Error parsing date: ${transaction.date}", innerE)
+                    }
+                }
+                
+                if (date != null) {
+                    val transactionCalendar = Calendar.getInstance().apply { time = date }
+                    transactionCalendar.get(Calendar.MONTH) == currentMonth && 
+                            transactionCalendar.get(Calendar.YEAR) == currentYear
+                } else {
+                    false
+                }
             } catch (e: Exception) {
+                Log.e("TransactionManager", "Error processing transaction date", e)
                 false
             }
         }

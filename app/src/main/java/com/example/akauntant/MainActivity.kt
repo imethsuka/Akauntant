@@ -14,6 +14,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.button.MaterialButton
 import android.content.Context
 import android.view.View
+import android.widget.LinearLayout
 
 class MainActivity : AppCompatActivity() {
     
@@ -24,14 +25,37 @@ class MainActivity : AppCompatActivity() {
     private lateinit var budgetUsageText: TextView
     private lateinit var budgetProgressBar: ProgressBar
     private lateinit var tvBudgetWarning: TextView
+    private lateinit var categoryChartPlaceholder: LinearLayout
     
     private lateinit var sharedPreferences: SharedPreferences
+    private lateinit var transactionManager: TransactionManager
     
     companion object {
         const val PREFS_NAME = "AkauntantPrefs"
         const val PREF_MONTHLY_BUDGET = "monthly_budget"
         const val PREF_CURRENCY = "currency"
         const val TRANSACTIONS_PREF = "transactions"
+        
+        // Category color mapping
+        private val CATEGORY_COLORS = mapOf(
+            "Food" to "#FF9800",
+            "Transport" to "#4CAF50",
+            "Housing" to "#2196F3",
+            "Entertainment" to "#9C27B0",
+            "Health" to "#F44336",
+            "Education" to "#009688",
+            "Shopping" to "#E91E63",
+            "Utilities" to "#607D8B",
+            "Personal" to "#FFEB3B",
+            "Travel" to "#795548",
+            "Other" to "#9E9E9E",
+            "Salary" to "#4CAF50",
+            "Freelance" to "#8BC34A",
+            "Gift" to "#CDDC39",
+            "Investment" to "#00BCD4",
+            "Refund" to "#03A9F4",
+            "Other Income" to "#3F51B5"
+        )
     }
     
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,6 +65,9 @@ class MainActivity : AppCompatActivity() {
         
         // Initialize SharedPreferences
         sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        
+        // Initialize TransactionManager
+        transactionManager = TransactionManager(this)
         
         // Set up the toolbar
         val toolbar = findViewById<Toolbar>(R.id.toolbar)
@@ -71,6 +98,7 @@ class MainActivity : AppCompatActivity() {
         budgetUsageText = findViewById(R.id.budgetUsageText)
         budgetProgressBar = findViewById(R.id.budgetProgressBar)
         tvBudgetWarning = findViewById(R.id.tvBudgetWarning)
+        categoryChartPlaceholder = findViewById(R.id.categoryChartPlaceholder)
     }
     
     private fun setupBottomNavigation() {
@@ -80,13 +108,18 @@ class MainActivity : AppCompatActivity() {
                     // Already on home screen
                     true
                 }
+                R.id.navigation_history -> {
+                    startActivity(Intent(this, HistoryActivity::class.java))
+                    overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
+                    false
+                }
                 R.id.navigation_add -> {
                     startActivity(Intent(this, AddTransactionActivity::class.java))
                     overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
                     false
                 }
-                R.id.navigation_history -> {
-                    startActivity(Intent(this, HistoryActivity::class.java))
+                R.id.navigation_report -> {
+                    startActivity(Intent(this, ReportActivity::class.java))
                     overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
                     false
                 }
@@ -101,14 +134,13 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun updateDashboard() {
-        // Get currency symbol
-        val currencyText = sharedPreferences.getString(PREF_CURRENCY, "USD ($)")
-        val currencySymbol = getCurrencySymbol(currencyText ?: "USD ($)")
+        // Get currency symbol from TransactionManager
+        val currencyText = transactionManager.getCurrency()
+        val currencySymbol = getCurrencySymbol(currencyText)
         
-        // In a real app, these values would come from transaction data
-        // For now, we'll use placeholder values
-        val totalIncome = 4250.00
-        val totalExpense = 2845.75
+        // Get real transaction data from TransactionManager
+        val totalIncome = transactionManager.getCurrentMonthIncome()
+        val totalExpense = transactionManager.getCurrentMonthExpenses()
         val savings = totalIncome - totalExpense
         
         // Format currency values
@@ -118,10 +150,71 @@ class MainActivity : AppCompatActivity() {
         
         // Update budget progress
         updateBudgetStatus(totalExpense)
+        
+        // Update category spending chart
+        updateCategorySpending(currencySymbol)
+    }
+    
+    private fun updateCategorySpending(currencySymbol: String) {
+        // Get category expense data from TransactionManager
+        val categoryExpenses = transactionManager.getCategoryExpenses()
+        val categoryPercentages = transactionManager.getCategoryPercentages()
+        
+        // Clear the existing views in the category chart container
+        categoryChartPlaceholder.removeAllViews()
+        
+        // If no expense data, show a message
+        if (categoryExpenses.isEmpty()) {
+            val noDataText = TextView(this)
+            noDataText.text = "No expense data available for this month"
+            noDataText.setPadding(0, 20, 0, 20)
+            categoryChartPlaceholder.addView(noDataText)
+            return
+        }
+        
+        // Sort categories by expense amount (descending)
+        val sortedCategories = categoryExpenses.entries.sortedByDescending { it.value }
+        
+        // Add category views dynamically
+        for ((category, amount) in sortedCategories) {
+            val percentage = categoryPercentages[category] ?: 0f
+            
+            // Create the category row layout
+            val categoryLayout = layoutInflater.inflate(
+                R.layout.item_category_progress, 
+                categoryChartPlaceholder, 
+                false
+            )
+            
+            // Set the category name
+            val categoryNameView = categoryLayout.findViewById<TextView>(R.id.categoryName)
+            categoryNameView.text = category
+            
+            // Set the amount and percentage
+            val categoryAmountView = categoryLayout.findViewById<TextView>(R.id.categoryAmount)
+            categoryAmountView.text = "$currencySymbol${String.format("%,.2f", amount)} (${percentage.toInt()}%)"
+            
+            // Set the progress bar value and color
+            val progressBar = categoryLayout.findViewById<ProgressBar>(R.id.categoryProgressBar)
+            progressBar.progress = percentage.toInt()
+            
+            // Try to set color if available
+            try {
+                val colorString = CATEGORY_COLORS[category] ?: "#2196F3"
+                val color = android.graphics.Color.parseColor(colorString)
+                progressBar.progressTintList = android.content.res.ColorStateList.valueOf(color)
+            } catch (e: Exception) {
+                // Use default color if parsing fails
+            }
+            
+            // Add the category view to the container
+            categoryChartPlaceholder.addView(categoryLayout)
+        }
     }
     
     private fun updateBudgetStatus(totalExpense: Double) {
-        val budget = sharedPreferences.getFloat(PREF_MONTHLY_BUDGET, 3800f).toDouble()
+        // Get budget from TransactionManager instead of SharedPreferences directly
+        val budget = transactionManager.getMonthlyBudget()
         
         // Calculate percentage of budget used
         val percentageUsed = if (budget > 0) ((totalExpense / budget) * 100).toInt() else 0
