@@ -318,6 +318,29 @@ class SettingsActivity : AppCompatActivity() {
             // Save currency setting
             transactionManager.setCurrency(selectedCurrency)
             
+            // Check if notification settings have changed
+            val notificationsEnabled = switchNotifications.isChecked
+            val dailyRemindersEnabled = switchDailyReminders.isChecked
+            
+            // Save notification settings
+            sharedPreferences.edit()
+                .putBoolean(NOTIFICATIONS_KEY, notificationsEnabled)
+                .putBoolean(BUDGET_ALERT_KEY, switchBudgetAlert.isChecked)
+                .putBoolean(DAILY_REMINDERS_KEY, dailyRemindersEnabled)
+                .apply()
+            
+            // Schedule or cancel daily reminders based on setting
+            if (notificationsEnabled && dailyRemindersEnabled) {
+                NotificationService.scheduleDailyReminder(this, true)
+            } else {
+                NotificationService.scheduleDailyReminder(this, false)
+            }
+            
+            // Check budget status and send notification if necessary
+            if (notificationsEnabled && switchBudgetAlert.isChecked) {
+                transactionManager.checkBudgetStatusAndNotify()
+            }
+            
             Toast.makeText(this, "Settings saved successfully", Toast.LENGTH_SHORT).show()
             
             // Update budget status UI

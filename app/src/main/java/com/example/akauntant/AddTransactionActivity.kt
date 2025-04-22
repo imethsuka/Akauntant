@@ -295,6 +295,12 @@ class AddTransactionActivity : AppCompatActivity() {
                             "Transaction updated successfully!",
                             Toast.LENGTH_SHORT
                         ).show()
+                        
+                        // Check budget status and trigger notification if necessary
+                        // Only check if it's an expense transaction
+                        if (!isIncome) {
+                            transactionManager.checkBudgetStatusAndNotify()
+                        }
                     } else {
                         Toast.makeText(
                             this,
@@ -326,6 +332,11 @@ class AddTransactionActivity : AppCompatActivity() {
                             "$transactionType transaction saved successfully!",
                             Toast.LENGTH_SHORT
                         ).show()
+                        
+                        // Check budget status and trigger notification if necessary
+                        if (!isIncome) { // Only check budget on expense transactions
+                            transactionManager.checkBudgetStatusAndNotify()
+                        }
                     } else {
                         Toast.makeText(
                             this,

@@ -82,6 +82,9 @@ class MainActivity : AppCompatActivity() {
         // Update dashboard with latest data
         updateDashboard()
         
+        // Initialize notification channels and daily reminders if enabled
+        initializeNotifications()
+        
         // For edge-to-edge display
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -281,5 +284,29 @@ class MainActivity : AppCompatActivity() {
     override fun finish() {
         super.finish()
         overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
+    }
+
+    /**
+     * Initialize notification system
+     * Creates notification channels and schedules daily reminders if enabled
+     */
+    private fun initializeNotifications() {
+        // Create notification channels
+        NotificationService.createNotificationChannels(this)
+        
+        // Check if notifications and daily reminders are enabled
+        val notificationsEnabled = sharedPreferences.getBoolean(SettingsActivity.NOTIFICATIONS_KEY, false)
+        val dailyRemindersEnabled = sharedPreferences.getBoolean(SettingsActivity.DAILY_REMINDERS_KEY, false)
+        
+        // Schedule daily reminders if both settings are enabled
+        if (notificationsEnabled && dailyRemindersEnabled) {
+            NotificationService.scheduleDailyReminder(this, true)
+        }
+        
+        // Check current budget status and send notification if necessary
+        val budgetAlertsEnabled = sharedPreferences.getBoolean(SettingsActivity.BUDGET_ALERT_KEY, false)
+        if (notificationsEnabled && budgetAlertsEnabled) {
+            transactionManager.checkBudgetStatusAndNotify()
+        }
     }
 }

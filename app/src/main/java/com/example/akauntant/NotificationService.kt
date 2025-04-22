@@ -65,8 +65,8 @@ class NotificationService {
         fun showBudgetAlert(context: Context, percentUsed: Int, currencySymbol: String, budgetAmount: Double, spentAmount: Double) {
             // Check if budget alerts are enabled
             val prefs = context.getSharedPreferences(MainActivity.PREFS_NAME, Context.MODE_PRIVATE)
-            val notificationsEnabled = prefs.getBoolean("notifications", false)
-            val budgetAlertsEnabled = prefs.getBoolean("budget_alert", false)
+            val notificationsEnabled = prefs.getBoolean(SettingsActivity.NOTIFICATIONS_KEY, false)
+            val budgetAlertsEnabled = prefs.getBoolean(SettingsActivity.BUDGET_ALERT_KEY, false)
             
             // Don't show if notifications or budget alerts are disabled
             if (!notificationsEnabled || !budgetAlertsEnabled) return
@@ -171,8 +171,8 @@ class NotificationService {
         override fun onReceive(context: Context, intent: Intent) {
             // Check if reminders are still enabled
             val prefs = context.getSharedPreferences(MainActivity.PREFS_NAME, Context.MODE_PRIVATE)
-            val notificationsEnabled = prefs.getBoolean("notifications", false)
-            val dailyRemindersEnabled = prefs.getBoolean("daily_reminders", false)
+            val notificationsEnabled = prefs.getBoolean(SettingsActivity.NOTIFICATIONS_KEY, false)
+            val dailyRemindersEnabled = prefs.getBoolean(SettingsActivity.DAILY_REMINDERS_KEY, false)
             
             // Only show notification if both settings are enabled
             if (notificationsEnabled && dailyRemindersEnabled) {
@@ -223,8 +223,8 @@ class NotificationService {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
                 val prefs = context.getSharedPreferences(MainActivity.PREFS_NAME, Context.MODE_PRIVATE)
-                val notificationsEnabled = prefs.getBoolean("notifications", false)
-                val dailyRemindersEnabled = prefs.getBoolean("daily_reminders", false)
+                val notificationsEnabled = prefs.getBoolean(SettingsActivity.NOTIFICATIONS_KEY, false)
+                val dailyRemindersEnabled = prefs.getBoolean(SettingsActivity.DAILY_REMINDERS_KEY, false)
                 
                 // Re-schedule daily reminders if they were enabled
                 if (notificationsEnabled && dailyRemindersEnabled) {

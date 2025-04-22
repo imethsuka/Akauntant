@@ -250,6 +250,23 @@ class TransactionManager(private val context: Context) {
         }
     }
     
+    /**
+     * Checks budget status and sends notification if needed
+     */
+    fun checkBudgetStatusAndNotify() {
+        val budget = getMonthlyBudget()
+        if (budget <= 0) return // No budget set
+        
+        val spent = getCurrentMonthExpenses()
+        val percentUsed = ((spent / budget) * 100).toInt()
+        
+        // Send notification based on the percentage used
+        if (percentUsed >= 75) { // Only notify if at least 75% used
+            val currency = getCurrency()
+            NotificationService.showBudgetAlert(context, percentUsed, currency, budget, spent)
+        }
+    }
+    
     // Backup and Restore
     
     /**
