@@ -10,6 +10,8 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Build
+import android.provider.Settings
+import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -26,7 +28,7 @@ class NotificationService {
         private const val CHANNEL_ID_REMINDERS = "akauntant_reminders_channel"
         private const val BUDGET_NOTIFICATION_ID = 101
         private const val REMINDER_NOTIFICATION_ID = 102
-        private const val DAILY_REMINDER_REQUEST_CODE = 1001
+        private const val HALF_HOURLY_REMINDER_REQUEST_CODE = 1001
         
         /**
          * Creates notification channels for Android O and above
@@ -46,10 +48,10 @@ class NotificationService {
                 // Create Daily Reminders channel
                 val remindersChannel = NotificationChannel(
                     CHANNEL_ID_REMINDERS,
-                    "Daily Reminders",
+                    "Transaction Reminders",
                     NotificationManager.IMPORTANCE_DEFAULT
                 ).apply {
-                    description = "Daily reminders to add your transactions"
+                    description = "Reminders to add your transactions"
                 }
                 
                 // Register the channels with the system
@@ -116,14 +118,16 @@ class NotificationService {
         }
         
         /**
-         * Schedule daily reminders to add transactions
+         * Schedule periodic reminders to add transactions
+         * @param context The application context
+         * @param enabled Whether reminders should be enabled or disabled
          */
-        fun scheduleDailyReminder(context: Context, enabled: Boolean) {
+        fun scheduleDailyReminder(context: Context, enabled: Boolean): Boolean {
             val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-            val intent = Intent(context, DailyReminderReceiver::class.java)
+            val intent = Intent(context, HalfHourReminderReceiver::class.java)
             val pendingIntent = PendingIntent.getBroadcast(
                 context,
-                DAILY_REMINDER_REQUEST_CODE,
+                HALF_HOURLY_REMINDER_REQUEST_CODE,
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
@@ -131,43 +135,38 @@ class NotificationService {
             // Cancel any existing alarms
             alarmManager.cancel(pendingIntent)
             
-            // If enabled, setup new daily reminder
-            if (enabled) {
-                val calendar = Calendar.getInstance().apply {
-                    // Set time to 8:00 PM
-                    set(Calendar.HOUR_OF_DAY, 20) 
-                    set(Calendar.MINUTE, 0)
-                    set(Calendar.SECOND, 0)
-                    
-                    // If it's already past 8 PM, schedule for tomorrow
-                    if (System.currentTimeMillis() > timeInMillis) {
-                        add(Calendar.DAY_OF_YEAR, 1)
-                    }
-                }
-                
-                // Schedule repeating alarm
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    alarmManager.setExactAndAllowWhileIdle(
-                        AlarmManager.RTC_WAKEUP,
-                        calendar.timeInMillis,
-                        pendingIntent
-                    )
-                } else {
-                    alarmManager.setRepeating(
-                        AlarmManager.RTC_WAKEUP,
-                        calendar.timeInMillis,
-                        AlarmManager.INTERVAL_DAY,
-                        pendingIntent
-                    )
-                }
+            // If not enabled, return after cancelling
+            if (!enabled) {
+                return true
             }
+            
+            // Create the first reminder to start immediately
+            val calendar = Calendar.getInstance()
+            
+            // Schedule repeating alarm every half hour
+            // For newer Android versions, we need to manually reschedule in the receiver
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                alarmManager.setAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    calendar.timeInMillis,
+                    pendingIntent
+                )
+            } else {
+                alarmManager.setRepeating(
+                    AlarmManager.RTC_WAKEUP,
+                    calendar.timeInMillis,
+                    30 * 60 * 1000, // 30 minutes in milliseconds
+                    pendingIntent
+                )
+            }
+            return true
         }
     }
     
     /**
-     * Receiver for daily reminders
+     * Receiver for half-hourly reminders
      */
-    class DailyReminderReceiver : BroadcastReceiver() {
+    class HalfHourReminderReceiver : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             // Check if reminders are still enabled
             val prefs = context.getSharedPreferences(MainActivity.PREFS_NAME, Context.MODE_PRIVATE)
@@ -179,9 +178,26 @@ class NotificationService {
                 showReminderNotification(context)
             }
             
-            // Reschedule for tomorrow (needed for Android M+)
+            // Reschedule for next half hour (needed for newer Android versions)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                scheduleDailyReminder(context, dailyRemindersEnabled)
+                val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+                val nextIntent = Intent(context, HalfHourReminderReceiver::class.java)
+                val pendingIntent = PendingIntent.getBroadcast(
+                    context,
+                    HALF_HOURLY_REMINDER_REQUEST_CODE,
+                    nextIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+                
+                // Set next reminder for 30 minutes from now
+                val calendar = Calendar.getInstance()
+                calendar.add(Calendar.MINUTE, 30)
+                
+                alarmManager.setAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    calendar.timeInMillis,
+                    pendingIntent
+                )
             }
         }
         
@@ -197,8 +213,8 @@ class NotificationService {
             // Build the notification
             val builder = NotificationCompat.Builder(context, CHANNEL_ID_REMINDERS)
                 .setSmallIcon(android.R.drawable.stat_sys_warning) // Use default Android icon
-                .setContentTitle("Daily Transaction Reminder")
-                .setContentText("Don't forget to record today's income and expenses!")
+                .setContentTitle("Transaction Reminder")
+                .setContentText("Don't forget to record your recent income and expenses!")
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true)
@@ -226,7 +242,7 @@ class NotificationService {
                 val notificationsEnabled = prefs.getBoolean(SettingsActivity.NOTIFICATIONS_KEY, false)
                 val dailyRemindersEnabled = prefs.getBoolean(SettingsActivity.DAILY_REMINDERS_KEY, false)
                 
-                // Re-schedule daily reminders if they were enabled
+                // Re-schedule reminders if they were enabled
                 if (notificationsEnabled && dailyRemindersEnabled) {
                     scheduleDailyReminder(context, true)
                 }

@@ -61,7 +61,7 @@
         
         <!-- Register broadcast receivers for notifications -->
         <receiver
-            android:name=".NotificationService$DailyReminderReceiver"
+            android:name=".NotificationService$HalfHourReminderReceiver"
             android:exported="false" />
             
         <receiver
