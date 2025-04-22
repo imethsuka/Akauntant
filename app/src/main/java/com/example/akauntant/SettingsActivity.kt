@@ -147,7 +147,7 @@ class SettingsActivity : AppCompatActivity() {
     }
     
     private fun setupCurrencyDropdown() {
-        val currencies = arrayOf("$", "€", "£", "¥", "₹")
+        val currencies = arrayOf("$", "€", "£", "¥", "₹", "LKR")
         val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, currencies)
         spinnerCurrency.setAdapter(adapter)
     }
@@ -160,6 +160,9 @@ class SettingsActivity : AppCompatActivity() {
         // Load currency
         selectedCurrency = sharedPreferences.getString(CURRENCY_KEY, "$") ?: "$"
         spinnerCurrency.setText(selectedCurrency, false)
+        
+        // Set the currency prefix on the budget input field
+        findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.tilMonthlyBudget).prefixText = selectedCurrency
 
         // Load notification setting
         val notificationsEnabled = sharedPreferences.getBoolean(NOTIFICATIONS_KEY, false)
@@ -203,12 +206,21 @@ class SettingsActivity : AppCompatActivity() {
             override fun afterTextChanged(s: Editable?) {
                 val budgetText = s.toString()
                 monthlyBudget = if (budgetText.isNotEmpty()) budgetText.toDoubleOrNull() ?: 0.0 else 0.0
+                
+                // Update budget status whenever the budget value changes
+                updateBudgetStatus()
             }
         })
         
         spinnerCurrency.setOnItemClickListener { _, _, position, _ ->
-            val currencies = arrayOf("$", "€", "£", "¥", "₹")
+            val currencies = arrayOf("$", "€", "£", "¥", "₹", "LKR")
             selectedCurrency = currencies[position]
+            
+            // Update budget input field prefix with the selected currency
+            findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.tilMonthlyBudget).prefixText = selectedCurrency
+            
+            // Update budget status with the new currency
+            updateBudgetStatus()
         }
 
         switchNotifications.setOnCheckedChangeListener { _, isChecked ->
@@ -241,9 +253,14 @@ class SettingsActivity : AppCompatActivity() {
     
     private fun updateBudgetStatus() {
         try {
-            val monthlyBudget = sharedPreferences.getFloat(MONTHLY_BUDGET_KEY, 0f).toDouble()
+            // Get current budget from the input field if it's a valid number, otherwise from SharedPreferences
+            val enteredBudget = etMonthlyBudget.text.toString().toDoubleOrNull()
+            val monthlyBudget = enteredBudget ?: sharedPreferences.getFloat(MONTHLY_BUDGET_KEY, 0f).toDouble()
+            
             if (monthlyBudget <= 0) {
-                // No budget set yet
+                // No budget set yet, clear the summary text
+                findViewById<android.widget.TextView>(R.id.tvBudgetSummary).text = "No budget set yet"
+                findViewById<android.widget.ProgressBar>(R.id.budgetProgressBar).progress = 0
                 return
             }
             
@@ -265,10 +282,14 @@ class SettingsActivity : AppCompatActivity() {
             }
             
             // Update progress bar and summary text
-            val progress = if (monthlyBudget > 0) (totalExpenses / monthlyBudget * 100).toInt() else 0
+            val progress = if (monthlyBudget > 0) (totalExpenses / monthlyBudget * 100).toInt().coerceAtMost(100) else 0
             findViewById<android.widget.ProgressBar>(R.id.budgetProgressBar).progress = progress
-            val summaryText = "You've spent $${String.format("%.2f", totalExpenses)} " +
-                    "out of $${String.format("%.2f", monthlyBudget)} " +
+            
+            // Use the current selected currency symbol
+            val currencySymbol = selectedCurrency
+            
+            val summaryText = "You've spent $currencySymbol${String.format("%.2f", totalExpenses)} " +
+                    "out of $currencySymbol${String.format("%.2f", monthlyBudget)} " +
                     "($progress% of your budget)"
             findViewById<android.widget.TextView>(R.id.tvBudgetSummary).text = summaryText
             
