@@ -253,9 +253,12 @@ class SettingsActivity : AppCompatActivity() {
     
     private fun updateBudgetStatus() {
         try {
-            // Get current budget from the input field if it's a valid number, otherwise from SharedPreferences
+            // Create a TransactionManager instance to access transaction data properly
+            val transactionManager = TransactionManager(this)
+            
+            // Get current budget from the input field if it's a valid number, otherwise from TransactionManager
             val enteredBudget = etMonthlyBudget.text.toString().toDoubleOrNull()
-            val monthlyBudget = enteredBudget ?: sharedPreferences.getFloat(MONTHLY_BUDGET_KEY, 0f).toDouble()
+            val monthlyBudget = enteredBudget ?: transactionManager.getMonthlyBudget()
             
             if (monthlyBudget <= 0) {
                 // No budget set yet, clear the summary text
@@ -264,22 +267,8 @@ class SettingsActivity : AppCompatActivity() {
                 return
             }
             
-            // Calculate current month's expenses
-            val currentMonth = SimpleDateFormat("yyyy-MM", Locale.getDefault()).format(Date())
-            val transactionsString = sharedPreferences.getString(MainActivity.TRANSACTIONS_PREF, "[]")
-            val transactionsArray = JSONArray(transactionsString)
-            
-            var totalExpenses = 0.0
-            
-            for (i in 0 until transactionsArray.length()) {
-                val transactionObject = transactionsArray.getJSONObject(i)
-                if (!transactionObject.optBoolean("isIncome", false)) {
-                    val date = transactionObject.optString("date", "")
-                    if (date.startsWith(currentMonth)) {
-                        totalExpenses += transactionObject.optDouble("amount", 0.0)
-                    }
-                }
-            }
+            // Get total expenses for the current month directly from TransactionManager
+            val totalExpenses = transactionManager.getCurrentMonthExpenses()
             
             // Update progress bar and summary text
             val progress = if (monthlyBudget > 0) (totalExpenses / monthlyBudget * 100).toInt().coerceAtMost(100) else 0
@@ -292,6 +281,16 @@ class SettingsActivity : AppCompatActivity() {
                     "out of $currencySymbol${String.format("%.2f", monthlyBudget)} " +
                     "($progress% of your budget)"
             findViewById<android.widget.TextView>(R.id.tvBudgetSummary).text = summaryText
+            
+            // Color the progress bar based on percentage used
+            val progressBar = findViewById<android.widget.ProgressBar>(R.id.budgetProgressBar)
+            if (progress >= 90) {
+                progressBar.progressTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.RED)
+            } else if (progress >= 75) {
+                progressBar.progressTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#FF9800")) // Orange
+            } else {
+                progressBar.progressTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#4CAF50")) // Green
+            }
             
         } catch (e: Exception) {
             e.printStackTrace()

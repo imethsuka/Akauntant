@@ -213,7 +213,7 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun updateBudgetStatus(totalExpense: Double) {
-        // Get budget from TransactionManager instead of SharedPreferences directly
+        // Get budget from TransactionManager
         val budget = transactionManager.getMonthlyBudget()
         
         // Calculate percentage of budget used
@@ -223,15 +223,30 @@ class MainActivity : AppCompatActivity() {
         budgetProgressBar.progress = percentageUsed
         budgetUsageText.text = "Budget Usage: $percentageUsed%"
         
+        // Get currency symbol for the budget remaining text
+        val currencySymbol = getCurrencySymbol(transactionManager.getCurrency())
+        val remainingBudget = budget - totalExpense
+        val remainingText = if (budget > 0) {
+            "$currencySymbol${String.format("%,.2f", remainingBudget)} remaining"
+        } else {
+            "No budget set"
+        }
+        
+        // Add this next to the progress indicator
+        findViewById<TextView>(R.id.tvBudgetRemaining)?.text = remainingText
+        
         // Show warning if approaching or exceeding budget
-        if (percentageUsed >= 90) {
+        if (percentageUsed >= 100) {
             tvBudgetWarning.text = "Warning: You've exceeded your monthly budget!"
             tvBudgetWarning.visibility = View.VISIBLE
+            budgetProgressBar.progressTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.RED)
         } else if (percentageUsed >= 75) {
             tvBudgetWarning.text = "Warning: You're approaching your monthly budget limit!"
             tvBudgetWarning.visibility = View.VISIBLE
+            budgetProgressBar.progressTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#FF9800")) // Orange
         } else {
             tvBudgetWarning.visibility = View.GONE
+            budgetProgressBar.progressTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#4CAF50")) // Green
         }
     }
     
