@@ -153,12 +153,15 @@ class SettingsActivity : AppCompatActivity() {
     }
     
     private fun loadSettings() {
-        // Load monthly budget
-        monthlyBudget = sharedPreferences.getFloat(MONTHLY_BUDGET_KEY, 0f).toDouble()
+        // Create a TransactionManager to work with budget consistently
+        val transactionManager = TransactionManager(this)
+        
+        // Load monthly budget using TransactionManager for consistency
+        monthlyBudget = transactionManager.getMonthlyBudget()
         etMonthlyBudget.setText(if (monthlyBudget > 0) monthlyBudget.toString() else "")
         
         // Load currency
-        selectedCurrency = sharedPreferences.getString(CURRENCY_KEY, "$") ?: "$"
+        selectedCurrency = transactionManager.getCurrency()
         spinnerCurrency.setText(selectedCurrency, false)
         
         // Set the currency prefix on the budget input field
@@ -304,16 +307,25 @@ class SettingsActivity : AppCompatActivity() {
             return
         }
         
-        // Save monthly budget
-        sharedPreferences.edit()
-            .putFloat(MONTHLY_BUDGET_KEY, monthlyBudget.toFloat())
-            .putString(CURRENCY_KEY, selectedCurrency)
-            .apply()
-        
-        Toast.makeText(this, "Settings saved successfully", Toast.LENGTH_SHORT).show()
-        
-        // Update budget status UI
-        updateBudgetStatus()
+        try {
+            // Parse the budget value
+            val budgetValue = etMonthlyBudget.text.toString().toDoubleOrNull() ?: 0.0
+            
+            // Use TransactionManager to save budget consistently
+            val transactionManager = TransactionManager(this)
+            transactionManager.setMonthlyBudget(budgetValue)
+            
+            // Save currency setting
+            transactionManager.setCurrency(selectedCurrency)
+            
+            Toast.makeText(this, "Settings saved successfully", Toast.LENGTH_SHORT).show()
+            
+            // Update budget status UI
+            updateBudgetStatus()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Error saving settings: ${e.message}", Toast.LENGTH_SHORT).show()
+            e.printStackTrace()
+        }
     }
     
     private fun checkPermissionsAndRun(action: () -> Unit) {

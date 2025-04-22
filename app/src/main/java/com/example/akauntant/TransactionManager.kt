@@ -122,7 +122,13 @@ class TransactionManager(private val context: Context) {
      * Gets the monthly budget amount
      */
     fun getMonthlyBudget(): Double {
-        return sharedPreferences.getFloat(MONTHLY_BUDGET_KEY, 0f).toDouble()
+        return try {
+            val budgetString = sharedPreferences.getString(MONTHLY_BUDGET_KEY, "0.0")
+            budgetString?.toDouble() ?: 0.0
+        } catch (e: Exception) {
+            // Fallback to reading as float for backward compatibility
+            sharedPreferences.getFloat(MONTHLY_BUDGET_KEY, 0f).toDouble()
+        }
     }
     
     /**
@@ -130,7 +136,7 @@ class TransactionManager(private val context: Context) {
      */
     fun setMonthlyBudget(amount: Double) {
         sharedPreferences.edit()
-            .putFloat(MONTHLY_BUDGET_KEY, amount.toFloat())
+            .putString(MONTHLY_BUDGET_KEY, amount.toString())
             .apply()
     }
     

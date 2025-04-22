@@ -215,9 +215,19 @@ class MainActivity : AppCompatActivity() {
     private fun updateBudgetStatus(totalExpense: Double) {
         // Get budget from TransactionManager
         val budget = transactionManager.getMonthlyBudget()
+        val tvBudgetRemaining = findViewById<TextView>(R.id.tvBudgetRemaining)
+        
+        if (budget <= 0) {
+            // Handle case where no budget is set
+            budgetUsageText.text = "Budget Usage: N/A"
+            tvBudgetRemaining.text = "No budget set"
+            tvBudgetWarning.visibility = View.GONE
+            budgetProgressBar.progress = 0
+            return
+        }
         
         // Calculate percentage of budget used
-        val percentageUsed = if (budget > 0) ((totalExpense / budget) * 100).toInt() else 0
+        val percentageUsed = ((totalExpense / budget) * 100).toInt().coerceAtMost(100)
         
         // Update progress bar and text
         budgetProgressBar.progress = percentageUsed
@@ -226,14 +236,10 @@ class MainActivity : AppCompatActivity() {
         // Get currency symbol for the budget remaining text
         val currencySymbol = getCurrencySymbol(transactionManager.getCurrency())
         val remainingBudget = budget - totalExpense
-        val remainingText = if (budget > 0) {
-            "$currencySymbol${String.format("%,.2f", remainingBudget)} remaining"
-        } else {
-            "No budget set"
-        }
+        val remainingText = "$currencySymbol${String.format("%,.2f", remainingBudget)} remaining"
         
-        // Add this next to the progress indicator
-        findViewById<TextView>(R.id.tvBudgetRemaining)?.text = remainingText
+        // Update the remaining budget text
+        tvBudgetRemaining.text = remainingText
         
         // Show warning if approaching or exceeding budget
         if (percentageUsed >= 100) {
