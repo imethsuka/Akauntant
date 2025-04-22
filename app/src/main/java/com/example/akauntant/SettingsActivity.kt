@@ -7,6 +7,7 @@ import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.MenuItem
@@ -391,105 +392,172 @@ class SettingsActivity : AppCompatActivity() {
     
     private fun backupTransactions() {
         try {
-            val transactionsString = sharedPreferences.getString(MainActivity.TRANSACTIONS_PREF, "[]")
-            if (transactionsString.isNullOrEmpty() || transactionsString == "[]") {
+            val transactionManager = TransactionManager(this)
+            val transactions = transactionManager.getAllTransactions()
+            
+            if (transactions.isEmpty()) {
                 Toast.makeText(this, "No transactions to backup", Toast.LENGTH_SHORT).show()
                 return
             }
             
             val backupFile = createBackupFile()
-            FileOutputStream(backupFile).use { output ->
-                output.write(transactionsString.toByteArray())
+            if (backupFile != null) {
+                // Create a proper JSON backup with all transactions
+                val jsonArray = JSONArray()
+                transactions.forEach { transaction ->
+                    jsonArray.put(transaction.toJson())
+                }
+                
+                FileOutputStream(backupFile).use { output ->
+                    output.write(jsonArray.toString().toByteArray())
+                }
+                
+                Toast.makeText(
+                    this, 
+                    "Backup saved to: ${backupFile.path}", 
+                    Toast.LENGTH_LONG
+                ).show()
+            } else {
+                Toast.makeText(this, "Could not create backup file", Toast.LENGTH_SHORT).show()
             }
-            
-            Toast.makeText(
-                this, 
-                "Backup saved to: ${backupFile.name}", 
-                Toast.LENGTH_LONG
-            ).show()
-        } catch (e: IOException) {
+        } catch (e: Exception) {
             e.printStackTrace()
             Toast.makeText(this, "Backup failed: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun restoreTransactions() {
-        val backupFiles = listBackupFiles()
-        if (backupFiles.isEmpty()) {
-            Toast.makeText(this, "No backup files found", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        // Show dialog to select backup file if multiple exist
-        val fileNames = backupFiles.map { it.name }.toTypedArray()
-        AlertDialog.Builder(this)
-            .setTitle("Select Backup to Restore")
-            .setItems(fileNames) { _, which ->
-                val selectedFile = backupFiles[which]
-                restoreFromFile(selectedFile)
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
-    }
-
-    private fun restoreFromFile(backupFile: File) {
         try {
-            val transactionsString = FileInputStream(backupFile).use { input ->
-                val bytes = input.readBytes()
-                String(bytes, Charsets.UTF_8)
+            // Create intent to pick a file
+            val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                addCategory(Intent.CATEGORY_OPENABLE)
+                type = "application/json"
             }
             
-            // Validate JSON format
-            try {
-                JSONArray(transactionsString)
-            } catch (e: JSONException) {
-                Toast.makeText(this, "Invalid backup file format", Toast.LENGTH_SHORT).show()
-                return
-            }
-            
-            // Confirm restoration
-            AlertDialog.Builder(this)
-                .setTitle("Restore Data")
-                .setMessage("This will replace all your current transaction data. Continue?")
-                .setPositiveButton("Restore") { _, _ ->
-                    // Apply the restore
-                    sharedPreferences.edit()
-                        .putString(MainActivity.TRANSACTIONS_PREF, transactionsString)
-                        .apply()
-                    
-                    Toast.makeText(this, "Data restored successfully!", Toast.LENGTH_SHORT).show()
-                    
-                    // Update budget status
-                    updateBudgetStatus()
-                }
-                .setNegativeButton("Cancel", null)
-                .show()
-            
-        } catch (e: IOException) {
+            // Launch the file picker
+            startActivityForResult(intent, REQUEST_CODE_PICK_BACKUP_FILE)
+        } catch (e: Exception) {
+            Toast.makeText(this, "Error opening file picker: ${e.message}", Toast.LENGTH_SHORT).show()
             e.printStackTrace()
-            Toast.makeText(this, "Restore failed: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
-    private fun createBackupFile(): File {
-        val backupDir = File(filesDir, "backups")
-        if (!backupDir.exists()) {
-            backupDir.mkdirs()
-        }
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
         
-        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-        return File(backupDir, "akauntant_backup_$timestamp.json")
+        if (requestCode == REQUEST_CODE_PICK_BACKUP_FILE && resultCode == RESULT_OK) {
+            data?.data?.let { uri ->
+                try {
+                    // Read the content from the selected file
+                    val transactionsString = contentResolver.openInputStream(uri)?.use { input ->
+                        val bytes = input.readBytes()
+                        String(bytes, Charsets.UTF_8)
+                    }
+                    
+                    // Validate JSON format
+                    if (transactionsString != null) {
+                        try {
+                            JSONArray(transactionsString)
+                            
+                            // Confirm restoration
+                            AlertDialog.Builder(this)
+                                .setTitle("Restore Data")
+                                .setMessage("This will replace all your current transaction data. Continue?")
+                                .setPositiveButton("Restore") { _, _ ->
+                                    // Apply the restore
+                                    sharedPreferences.edit()
+                                        .putString(MainActivity.TRANSACTIONS_PREF, transactionsString)
+                                        .apply()
+                                    
+                                    Toast.makeText(this, "Data restored successfully!", Toast.LENGTH_SHORT).show()
+                                    
+                                    // Update budget status
+                                    updateBudgetStatus()
+                                }
+                                .setNegativeButton("Cancel", null)
+                                .show()
+                        } catch (e: JSONException) {
+                            Toast.makeText(this, "Invalid backup file format", Toast.LENGTH_SHORT).show()
+                        }
+                    } else {
+                        Toast.makeText(this, "Could not read the selected file", Toast.LENGTH_SHORT).show()
+                    }
+                } catch (e: Exception) {
+                    Toast.makeText(this, "Error reading file: ${e.message}", Toast.LENGTH_SHORT).show()
+                    e.printStackTrace()
+                }
+            }
+        }
     }
 
+    private fun createBackupFile(): File? {
+        try {
+            val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+            val fileName = "akauntant_backup_$timestamp.json"
+            
+            // For Android 10+ (API 29+)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val contentValues = android.content.ContentValues().apply {
+                    put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                    put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "application/json")
+                    put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, "Download/Akauntant")
+                }
+                
+                val uri = contentResolver.insert(
+                    android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                    contentValues
+                )
+                
+                if (uri != null) {
+                    contentResolver.openOutputStream(uri)?.close()
+                    return File(getPathFromUri(uri) ?: "")
+                }
+            } else {
+                // For older Android versions
+                val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                val akauntantDir = File(downloadsDir, "Akauntant")
+                if (!akauntantDir.exists()) {
+                    akauntantDir.mkdirs()
+                }
+                
+                val file = File(akauntantDir, fileName)
+                return file
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(this, "Error creating backup file: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+        return null
+    }
+    
+    private fun getPathFromUri(uri: android.net.Uri): String? {
+        val projection = arrayOf(android.provider.MediaStore.MediaColumns.DATA)
+        contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                val columnIndex = cursor.getColumnIndexOrThrow(android.provider.MediaStore.MediaColumns.DATA)
+                return cursor.getString(columnIndex)
+            }
+        }
+        return uri.path
+    }
+
+    // For older API compatibility - not needed in the previous version
     private fun listBackupFiles(): List<File> {
-        val backupDir = File(filesDir, "backups")
-        if (!backupDir.exists()) {
+        try {
+            // For Android 10+ (API 29+), this is only used as a fallback
+            val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            val akauntantDir = File(downloadsDir, "Akauntant")
+            if (!akauntantDir.exists()) {
+                return emptyList()
+            }
+            
+            return akauntantDir.listFiles { file ->
+                file.isFile && file.name.endsWith(".json")
+            }?.sortedByDescending { it.lastModified() } ?: emptyList()
+        } catch (e: Exception) {
+            e.printStackTrace()
             return emptyList()
         }
-        
-        return backupDir.listFiles { file ->
-            file.isFile && file.name.endsWith(".json")
-        }?.sortedByDescending { it.lastModified() } ?: emptyList()
     }
     
     private fun setupBottomNavigation() {
@@ -557,5 +625,6 @@ class SettingsActivity : AppCompatActivity() {
         const val NOTIFICATIONS_KEY = "notifications"
         const val BUDGET_ALERT_KEY = "budget_alert"
         const val DAILY_REMINDERS_KEY = "daily_reminders"
+        const val REQUEST_CODE_PICK_BACKUP_FILE = 1001
     }
 }
