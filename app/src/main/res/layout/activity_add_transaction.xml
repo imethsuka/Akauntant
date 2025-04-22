@@ -20,7 +20,7 @@
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="@color/primary"
+            android:background="@color/ic_launcher_background"
             app:title="Add Transaction"
             app:titleTextColor="@color/white" />
     </com.google.android.material.appbar.AppBarLayout>
@@ -78,6 +78,7 @@
                     android:checked="true"
                     android:text="Expense"
                     android:textColor="@color/expense_red"
+                    android:textColorLink="@color/ic_launcher_background"
                     android:textSize="16sp" />
             </RadioGroup>
 
@@ -219,7 +220,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="24dp"
                 android:layout_marginBottom="16dp"
-                android:backgroundTint="@color/primary"
+                android:backgroundTint="@color/ic_launcher_background"
                 android:paddingTop="12dp"
                 android:paddingBottom="12dp"
                 android:text="Save Transaction"
@@ -243,8 +244,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/white"
-        app:itemIconTint="@color/primary"
-        app:itemTextColor="@color/primary"
+        app:itemIconTint="@color/ic_launcher_background"
+        app:itemTextColor="@color/ic_launcher_background"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
