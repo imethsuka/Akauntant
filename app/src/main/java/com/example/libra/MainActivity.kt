@@ -21,7 +21,7 @@ import com.github.mikephil.charting.charts.PieChart
 import com.github.mikephil.charting.data.PieData
 import com.github.mikephil.charting.data.PieDataSet
 import com.github.mikephil.charting.data.PieEntry
-import com.github.mikephil.charting.formatter.ValueFormatterw
+import com.github.mikephil.charting.formatter.ValueFormatter
 
 class MainActivity : AppCompatActivity() {
     
@@ -202,7 +202,9 @@ class MainActivity : AppCompatActivity() {
             
             val emptyData = PieData(emptyDataSet)
             emptyData.setValueFormatter(object : ValueFormatter() {
-                override fun getFormattedValue(value: Float): String = ""
+                override fun getFormattedValue(value: Float): String {
+                    return ""
+                }
             })
             
             categoryPieChart.data = emptyData
