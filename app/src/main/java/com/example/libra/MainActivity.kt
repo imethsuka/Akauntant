@@ -15,6 +15,13 @@ import com.google.android.material.button.MaterialButton
 import android.content.Context
 import android.view.View
 import android.widget.LinearLayout
+import android.graphics.Color
+import android.content.res.ColorStateList
+import com.github.mikephil.charting.charts.PieChart
+import com.github.mikephil.charting.data.PieData
+import com.github.mikephil.charting.data.PieDataSet
+import com.github.mikephil.charting.data.PieEntry
+import com.github.mikephil.charting.formatter.ValueFormatterw
 
 class MainActivity : AppCompatActivity() {
     
@@ -26,6 +33,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var budgetProgressBar: ProgressBar
     private lateinit var tvBudgetWarning: TextView
     private lateinit var categoryChartPlaceholder: LinearLayout
+    private lateinit var categoryPieChart: PieChart
     
     private lateinit var sharedPreferences: SharedPreferences
     private lateinit var transactionManager: TransactionManager
@@ -36,19 +44,19 @@ class MainActivity : AppCompatActivity() {
         const val PREF_CURRENCY = "currency"
         const val TRANSACTIONS_PREF = "transactions"
         
-        // Category color mapping
+        // Category color mapping - updated with modern colors
         private val CATEGORY_COLORS = mapOf(
-            "Food" to "#FF9800",
-            "Transport" to "#4CAF50",
-            "Housing" to "#2196F3",
-            "Entertainment" to "#9C27B0",
-            "Health" to "#F44336",
+            "Food" to "#00C853",
+            "Transport" to "#FF5252",
+            "Housing" to "#448AFF",
+            "Entertainment" to "#D500F9",
+            "Health" to "#00B0FF",
             "Education" to "#009688",
             "Shopping" to "#E91E63",
-            "Utilities" to "#607D8B",
+            "Utilities" to "#FFB300",
             "Personal" to "#FFEB3B",
             "Travel" to "#795548",
-            "Other" to "#9E9E9E",
+            "Other" to "#FF6D00",
             "Salary" to "#4CAF50",
             "Freelance" to "#8BC34A",
             "Gift" to "#CDDC39",
@@ -102,6 +110,30 @@ class MainActivity : AppCompatActivity() {
         budgetProgressBar = findViewById(R.id.budgetProgressBar)
         tvBudgetWarning = findViewById(R.id.tvBudgetWarning)
         categoryChartPlaceholder = findViewById(R.id.categoryChartPlaceholder)
+        categoryPieChart = findViewById(R.id.categoryPieChart)
+        
+        // Setup pie chart configuration
+        setupPieChart()
+    }
+    
+    private fun setupPieChart() {
+        categoryPieChart.description.isEnabled = false
+        categoryPieChart.isDrawHoleEnabled = true
+        categoryPieChart.setHoleColor(Color.WHITE)
+        categoryPieChart.holeRadius = 58f
+        categoryPieChart.transparentCircleRadius = 61f
+        categoryPieChart.setDrawCenterText(true)
+        categoryPieChart.centerText = "Expenses"
+        categoryPieChart.setCenterTextSize(16f)
+        categoryPieChart.setCenterTextColor(Color.parseColor("#212121"))
+        categoryPieChart.legend.isEnabled = false
+        categoryPieChart.setUsePercentValues(true)
+        categoryPieChart.setExtraOffsets(5f, 10f, 5f, 5f)
+        categoryPieChart.setEntryLabelColor(Color.WHITE)
+        categoryPieChart.setEntryLabelTextSize(12f)
+        categoryPieChart.dragDecelerationFrictionCoef = 0.95f
+        categoryPieChart.rotationAngle = 0f
+        categoryPieChart.isRotationEnabled = true
     }
     
     private fun setupBottomNavigation() {
@@ -155,7 +187,122 @@ class MainActivity : AppCompatActivity() {
         updateBudgetStatus(totalExpense)
         
         // Update category spending chart
-        updateCategorySpending(currencySymbol)
+        updateCategoryPieChart(currencySymbol)
+    }
+    
+    private fun updateCategoryPieChart(currencySymbol: String) {
+        // Get category expense data from TransactionManager
+        val categoryExpenses = transactionManager.getCategoryExpenses()
+        
+        // If no expense data, show empty chart
+        if (categoryExpenses.isEmpty()) {
+            val emptyEntries = listOf(PieEntry(100f, "No Data"))
+            val emptyDataSet = PieDataSet(emptyEntries, "No Data")
+            emptyDataSet.color = Color.LTGRAY
+            
+            val emptyData = PieData(emptyDataSet)
+            emptyData.setValueFormatter(object : ValueFormatter() {
+                override fun getFormattedValue(value: Float): String = ""
+            })
+            
+            categoryPieChart.data = emptyData
+            categoryPieChart.invalidate()
+            
+            // Also update text views if they exist
+            try {
+                findViewById<TextView>(R.id.tv_housing_amount).text = "${currencySymbol}0.00"
+                findViewById<TextView>(R.id.tv_food_amount).text = "${currencySymbol}0.00"
+                findViewById<TextView>(R.id.tv_transportation_amount).text = "${currencySymbol}0.00"
+                findViewById<TextView>(R.id.tv_others_amount).text = "${currencySymbol}0.00"
+            } catch (e: Exception) {
+                // Text views might not exist yet
+            }
+            
+            return
+        }
+        
+        // Sort categories by expense amount (descending)
+        val sortedCategories = categoryExpenses.entries.sortedByDescending { it.value }
+        
+        // Calculate the total expense to get percentages
+        val totalExpense = categoryExpenses.values.sum()
+        
+        // Prepare pie entries
+        val entries = ArrayList<PieEntry>()
+        val colors = ArrayList<Int>()
+        
+        // Track the amounts for top categories to update the UI legend
+        var housingAmount = 0.0
+        var foodAmount = 0.0
+        var transportAmount = 0.0
+        var otherAmount = 0.0
+        
+        // Group small categories as "Other" for better visualization
+        val threshold = 0.05 * totalExpense // 5% threshold
+        val topCategories = sortedCategories.filter { it.value >= threshold }
+        val otherCategories = sortedCategories.filter { it.value < threshold }
+        
+        // Add top categories first
+        for ((category, amount) in topCategories) {
+            val percentage = (amount / totalExpense * 100).toFloat()
+            entries.add(PieEntry(percentage, category))
+            
+            // Track amounts for the legend
+            when (category) {
+                "Housing" -> housingAmount = amount
+                "Food" -> foodAmount = amount
+                "Transport", "Transportation" -> transportAmount = amount
+                else -> otherAmount += amount
+            }
+            
+            // Add color for this category
+            val colorString = CATEGORY_COLORS[category] ?: "#FF6D00" // Default to "Other" color
+            colors.add(Color.parseColor(colorString))
+        }
+        
+        // Combine small categories as "Other"
+        if (otherCategories.isNotEmpty()) {
+            val otherSum = otherCategories.sumOf { it.value }
+            val otherPercentage = (otherSum / totalExpense * 100).toFloat()
+            entries.add(PieEntry(otherPercentage, "Other"))
+            colors.add(Color.parseColor("#FF6D00")) // Other color
+            
+            // Add to other amount for legend
+            otherAmount += otherSum
+        }
+        
+        // Update the category amounts in the UI legend if they exist
+        try {
+            findViewById<TextView>(R.id.tv_housing_amount).text = "${currencySymbol}${String.format("%,.0f", housingAmount)}"
+            findViewById<TextView>(R.id.tv_food_amount).text = "${currencySymbol}${String.format("%,.0f", foodAmount)}"
+            findViewById<TextView>(R.id.tv_transportation_amount).text = "${currencySymbol}${String.format("%,.0f", transportAmount)}"
+            findViewById<TextView>(R.id.tv_others_amount).text = "${currencySymbol}${String.format("%,.0f", otherAmount)}"
+        } catch (e: Exception) {
+            // Text views might not exist yet
+        }
+        
+        // Create dataset with entries and colors
+        val dataSet = PieDataSet(entries, "Categories")
+        dataSet.colors = colors
+        dataSet.setDrawIcons(false)
+        dataSet.sliceSpace = 3f
+        dataSet.selectionShift = 5f
+        dataSet.valueTextColor = Color.WHITE
+        
+        // Configure the pie data
+        val data = PieData(dataSet)
+        data.setValueFormatter(object : ValueFormatter() {
+            override fun getFormattedValue(value: Float): String {
+                return "${value.toInt()}%"
+            }
+        })
+        data.setValueTextSize(11f)
+        data.setValueTextColor(Color.WHITE)
+        
+        // Set data and refresh
+        categoryPieChart.data = data
+        categoryPieChart.highlightValues(null)
+        categoryPieChart.invalidate()
     }
     
     private fun updateCategorySpending(currencySymbol: String) {
@@ -203,9 +350,9 @@ class MainActivity : AppCompatActivity() {
             
             // Try to set color if available
             try {
-                val colorString = CATEGORY_COLORS[category] ?: "#2196F3"
-                val color = android.graphics.Color.parseColor(colorString)
-                progressBar.progressTintList = android.content.res.ColorStateList.valueOf(color)
+                val colorString = CATEGORY_COLORS[category] ?: "#448AFF"
+                val color = Color.parseColor(colorString)
+                progressBar.progressTintList = ColorStateList.valueOf(color)
             } catch (e: Exception) {
                 // Use default color if parsing fails
             }
@@ -248,14 +395,14 @@ class MainActivity : AppCompatActivity() {
         if (percentageUsed >= 100) {
             tvBudgetWarning.text = "Warning: You've exceeded your monthly budget!"
             tvBudgetWarning.visibility = View.VISIBLE
-            budgetProgressBar.progressTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.RED)
+            budgetProgressBar.progressTintList = ColorStateList.valueOf(Color.RED)
         } else if (percentageUsed >= 75) {
             tvBudgetWarning.text = "Warning: You're approaching your monthly budget limit!"
             tvBudgetWarning.visibility = View.VISIBLE
-            budgetProgressBar.progressTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#FF9800")) // Orange
+            budgetProgressBar.progressTintList = ColorStateList.valueOf(Color.parseColor("#FFB300")) // Warning orange
         } else {
             tvBudgetWarning.visibility = View.GONE
-            budgetProgressBar.progressTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#4CAF50")) // Green
+            budgetProgressBar.progressTintList = ColorStateList.valueOf(Color.parseColor("#00C853")) // Success green
         }
     }
     
@@ -286,10 +433,6 @@ class MainActivity : AppCompatActivity() {
         overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
     }
 
-    /**
-     * Initialize notification system
-     * Creates notification channels and schedules daily reminders if enabled
-     */
     private fun initializeNotifications() {
         // Create notification channels
         NotificationService.createNotificationChannels(this)

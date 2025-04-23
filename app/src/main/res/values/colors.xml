@@ -3,17 +3,17 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     
-    <!-- Dashboard colors -->
-    <color name="primary">#2196F3</color>
-    <color name="primary_dark">#1976D2</color>
-    <color name="primary_light">#BBDEFB</color>
-    <color name="accent">#FF9800</color>
-    <color name="background">#F5F5F5</color>
+    <!-- Dashboard colors - Updated with modern palette -->
+    <color name="primary">#6200EE</color>
+    <color name="primary_dark">#3700B3</color>
+    <color name="primary_light">#BB86FC</color>
+    <color name="accent">#03DAC5</color>
+    <color name="background">#F8F9FD</color>
     
-    <!-- Card colors -->
-    <color name="income_green">#4CAF50</color>
-    <color name="expense_red">#F44336</color>
-    <color name="savings_blue">#2196F3</color>
+    <!-- Card colors - Enhanced for better visual hierarchy -->
+    <color name="income_green">#00C853</color>
+    <color name="expense_red">#FF5252</color>
+    <color name="savings_blue">#448AFF</color>
     <color name="card_background">#FFFFFF</color>
     <color name="card_stroke">#E0E0E0</color>
     
@@ -25,13 +25,22 @@
     
     <!-- Progress bar colors -->
     <color name="progress_background">#E0E0E0</color>
-    <color name="progress_fill">#2196F3</color>
-    <color name="progress_warning">#FFC107</color>
-    <color name="progress_danger">#F44336</color>
+    <color name="progress_fill">#6200EE</color>
+    <color name="progress_warning">#FFB300</color>
+    <color name="progress_danger">#FF5252</color>
     
     <!-- History screen colors -->
     <color name="divider_color">#E0E0E0</color>
-    <color name="income_chip_background">#E8F5E9</color>
+    <color name="income_chip_background">#E0F2F1</color>
     <color name="expense_chip_background">#FFEBEE</color>
-    <color name="warning_yellow">#FFC107</color>
+    <color name="warning_yellow">#FFB300</color>
+    
+    <!-- Chart colors -->
+    <color name="chart_housing">#448AFF</color>
+    <color name="chart_food">#00C853</color>
+    <color name="chart_transportation">#FF5252</color>
+    <color name="chart_utilities">#FFB300</color>
+    <color name="chart_entertainment">#D500F9</color>
+    <color name="chart_healthcare">#00B0FF</color>
+    <color name="chart_other">#FF6D00</color>
 </resources>
