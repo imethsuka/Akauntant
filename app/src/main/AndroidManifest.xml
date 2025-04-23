@@ -22,12 +22,12 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Akauntant"
+        android:theme="@style/Theme.Libra"
         tools:targetApi="31">
         <activity
             android:name=".SplashActivity"
             android:exported="true"
-            android:theme="@style/Theme.Akauntant.NoActionBar">
+            android:theme="@style/Theme.Libra.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -38,17 +38,17 @@
         <activity
             android:name=".ObScreen1Activity"
             android:exported="false"
-            android:theme="@style/Theme.Akauntant.NoActionBar">
+            android:theme="@style/Theme.Libra.NoActionBar">
         </activity>
         <activity
             android:name=".ObScreen2Activity"
             android:exported="false"
-            android:theme="@style/Theme.Akauntant.NoActionBar">
+            android:theme="@style/Theme.Libra.NoActionBar">
         </activity>
         <activity
             android:name=".ObScreen3Activity"
             android:exported="false"
-            android:theme="@style/Theme.Akauntant.NoActionBar">
+            android:theme="@style/Theme.Libra.NoActionBar">
         </activity>
         <!-- Authentication Screens -->
         <activity

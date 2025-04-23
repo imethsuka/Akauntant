@@ -1,4 +1,4 @@
-package com.example.akauntant
+package com.example.libra
 
 import android.Manifest
 import android.content.Context
@@ -387,7 +387,7 @@ class HistoryActivity : AppCompatActivity(), TransactionAdapter.OnTransactionCli
         }
         
         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-        return File(backupDir, "akauntant_backup_$timestamp.json")
+        return File(backupDir, "libra_backup_$timestamp.json")
     }
 
     private fun listBackupFiles(): List<File> {

@@ -1,4 +1,4 @@
-package com.example.akauntant
+package com.example.libra
 
 import android.app.AlarmManager
 import android.app.NotificationChannel
@@ -19,13 +19,13 @@ import java.util.Calendar
 
 /**
  * Service class to handle notifications for budget alerts and daily reminders
- * Created by Student for the Akauntant project
+ * Created by Student for the Libra project
  */
 class NotificationService {
     
     companion object {
-        private const val CHANNEL_ID_BUDGET = "akauntant_budget_channel"
-        private const val CHANNEL_ID_REMINDERS = "akauntant_reminders_channel"
+        private const val CHANNEL_ID_BUDGET = "libra_budget_channel"
+        private const val CHANNEL_ID_REMINDERS = "libra_reminders_channel"
         private const val BUDGET_NOTIFICATION_ID = 101
         private const val REMINDER_NOTIFICATION_ID = 102
         private const val HALF_HOURLY_REMINDER_REQUEST_CODE = 1001

@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.akauntant"
+    namespace = "com.example.libra"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.akauntant"
+        applicationId = "com.example.libra"
         minSdk = 24
         targetSdk = 35
         versionCode = 1

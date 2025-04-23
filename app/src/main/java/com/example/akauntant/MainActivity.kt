@@ -1,4 +1,4 @@
-package com.example.akauntant
+package com.example.libra
 
 import android.content.Intent
 import android.content.SharedPreferences
@@ -31,7 +31,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var transactionManager: TransactionManager
     
     companion object {
-        const val PREFS_NAME = "AkauntantPrefs"
+        const val PREFS_NAME = "LibraPrefs"
         const val PREF_MONTHLY_BUDGET = "monthly_budget"
         const val PREF_CURRENCY = "currency"
         const val TRANSACTIONS_PREF = "transactions"

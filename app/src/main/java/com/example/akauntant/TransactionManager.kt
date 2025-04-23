@@ -1,4 +1,4 @@
-package com.example.akauntant
+package com.example.libra
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -18,7 +18,7 @@ class TransactionManager(private val context: Context) {
     private val sharedPreferences: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     
     companion object {
-        private const val PREFS_NAME = "akauntant_prefs"
+        private const val PREFS_NAME = "libra_prefs"
         private const val TRANSACTIONS_KEY = "transactions"
         private const val MONTHLY_BUDGET_KEY = "monthly_budget"
         private const val CURRENCY_KEY = "currency"
@@ -282,7 +282,7 @@ class TransactionManager(private val context: Context) {
             
             // Create backup file with timestamp
             val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-            val backupFile = File(backupDir, "akauntant_backup_$timestamp.json")
+            val backupFile = File(backupDir, "libra_backup_$timestamp.json")
             
             // Write transactions to file
             val transactions = getAllTransactions()

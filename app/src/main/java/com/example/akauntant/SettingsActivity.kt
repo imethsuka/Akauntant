@@ -1,4 +1,4 @@
-package com.example.akauntant
+package com.example.libra
 
 import android.Manifest
 import android.content.Context
@@ -493,14 +493,14 @@ class SettingsActivity : AppCompatActivity() {
     private fun createBackupFile(): File? {
         try {
             val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-            val fileName = "akauntant_backup_$timestamp.json"
+            val fileName = "libra_backup_$timestamp.json"
             
             // For Android 10+ (API 29+)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 val contentValues = android.content.ContentValues().apply {
                     put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, fileName)
                     put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "application/json")
-                    put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, "Download/Akauntant")
+                    put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, "Download/Libra")
                 }
                 
                 val uri = contentResolver.insert(
@@ -515,12 +515,12 @@ class SettingsActivity : AppCompatActivity() {
             } else {
                 // For older Android versions
                 val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-                val akauntantDir = File(downloadsDir, "Akauntant")
-                if (!akauntantDir.exists()) {
-                    akauntantDir.mkdirs()
+                val libraDir = File(downloadsDir, "Libra")
+                if (!libraDir.exists()) {
+                    libraDir.mkdirs()
                 }
                 
-                val file = File(akauntantDir, fileName)
+                val file = File(libraDir, fileName)
                 return file
             }
         } catch (e: Exception) {
@@ -546,12 +546,12 @@ class SettingsActivity : AppCompatActivity() {
         try {
             // For Android 10+ (API 29+), this is only used as a fallback
             val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-            val akauntantDir = File(downloadsDir, "Akauntant")
-            if (!akauntantDir.exists()) {
+            val libraDir = File(downloadsDir, "Libra")
+            if (!libraDir.exists()) {
                 return emptyList()
             }
             
-            return akauntantDir.listFiles { file ->
+            return libraDir.listFiles { file ->
                 file.isFile && file.name.endsWith(".json")
             }?.sortedByDescending { it.lastModified() } ?: emptyList()
         } catch (e: Exception) {
