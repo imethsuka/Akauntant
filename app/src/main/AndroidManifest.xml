@@ -34,6 +34,32 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- Onboarding Screens -->
+        <activity
+            android:name=".ObScreen1Activity"
+            android:exported="false"
+            android:theme="@style/Theme.Akauntant.NoActionBar">
+        </activity>
+        <activity
+            android:name=".ObScreen2Activity"
+            android:exported="false"
+            android:theme="@style/Theme.Akauntant.NoActionBar">
+        </activity>
+        <activity
+            android:name=".ObScreen3Activity"
+            android:exported="false"
+            android:theme="@style/Theme.Akauntant.NoActionBar">
+        </activity>
+        <!-- Authentication Screens -->
+        <activity
+            android:name=".SignUpActivity"
+            android:exported="false">
+        </activity>
+        <activity
+            android:name=".SignInActivity"
+            android:exported="false">
+        </activity>
+        <!-- Main App Screens -->
         <activity
             android:name=".MainActivity"
             android:exported="true">

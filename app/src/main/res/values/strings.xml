@@ -2,4 +2,11 @@
     <string name="app_name">Akauntant</string>
     <string name="app_logo">App Logo</string>
     <string name="app_tagline">Smart Financial Management</string>
+    <string name="log_income_expenses_in_seconds_to_stay_organized"><![CDATA[Log income & expenses in seconds to stay organized.]]></string>
+    <string name="track_easily">Track Easily</string>
+    <string name="skip">Skip</string>
+    <string name="next">Next</string>
+    <string name="take_charge">Take Charge</string>
+    <string name="start_managing_your_money_with_confidence">Start managing your money with confidence.</string>
+    <string name="get_started">Get Started</string>
 </resources>

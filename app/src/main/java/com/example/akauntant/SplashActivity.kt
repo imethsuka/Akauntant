@@ -15,11 +15,11 @@ class SplashActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_splash)
         
-        // Use Handler to delay the transition to MainActivity
+        // Use Handler to delay the transition to ObScreen1Activity
         Handler(Looper.getMainLooper()).postDelayed({
-            // Create an Intent to start the MainActivity
-            val mainIntent = Intent(this, MainActivity::class.java)
-            startActivity(mainIntent)
+            // Create an Intent to start the ObScreen1Activity
+            val intent = Intent(this, ObScreen1Activity::class.java)
+            startActivity(intent)
             
             // Apply fade transition animation
             overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
