@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Libra</string>
+    <string name="app_name">Cashly</string>
     <string name="app_logo">App Logo</string>
     <string name="app_tagline">Smart Financial Management</string>
     <string name="log_income_expenses_in_seconds_to_stay_organized"><![CDATA[Log income & expenses in seconds to stay organized.]]></string>

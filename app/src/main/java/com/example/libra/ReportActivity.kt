@@ -48,31 +48,39 @@ class ReportActivity : AppCompatActivity() {
         loadWeeklyData() // Default to weekly view
     }
     
+    @Suppress("DEPRECATION")
     private fun setupBottomNavigation() {
+        bottomNavigation = findViewById(R.id.bottomNavigation)
         bottomNavigation.selectedItemId = R.id.navigation_report
-        bottomNavigation.setOnItemSelectedListener { item ->
-            when (item.itemId) {
+        
+        bottomNavigation.setOnItemSelectedListener { menuItem ->
+            when (menuItem.itemId) {
                 R.id.navigation_home -> {
                     startActivity(Intent(this, MainActivity::class.java))
-                    overridePendingTransition(0, 0)
+                    overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
+                    finish()
                     true
                 }
                 R.id.navigation_history -> {
                     startActivity(Intent(this, HistoryActivity::class.java))
-                    overridePendingTransition(0, 0)
+                    overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
+                    finish()
                     true
                 }
                 R.id.navigation_add -> {
                     startActivity(Intent(this, AddTransactionActivity::class.java))
-                    overridePendingTransition(0, 0)
+                    overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
+                    finish()
                     true
                 }
                 R.id.navigation_report -> {
+                    // Already on this screen
                     true
                 }
                 R.id.navigation_settings -> {
                     startActivity(Intent(this, SettingsActivity::class.java))
-                    overridePendingTransition(0, 0)
+                    overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
+                    finish()
                     true
                 }
                 else -> false

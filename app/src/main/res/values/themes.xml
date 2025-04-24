@@ -1,8 +1,19 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Base.Theme.Libra" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+        <!-- Apply custom colors to theme -->
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorPrimaryDark">@color/primary_dark</item>
+        <item name="colorPrimaryVariant">@color/primary_light</item>
+        <item name="colorSecondary">@color/accent</item>
+        <item name="colorSurface">@color/card_background</item>
+        <item name="colorOnPrimary">@color/text_light</item>
+        <item name="colorOnSecondary">@color/text_light</item>
+        <item name="colorOnBackground">@color/text_primary</item>
+        <item name="android:colorBackground">@color/background</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="android:statusBarColor">@color/primary_dark</item>
+        <item name="android:navigationBarColor">@color/primary_dark</item>
     </style>
 
     <style name="Theme.Libra" parent="Base.Theme.Libra" />

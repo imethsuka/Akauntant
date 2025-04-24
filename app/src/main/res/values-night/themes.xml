@@ -2,6 +2,17 @@
     <!-- Base application theme. -->
     <style name="Base.Theme.Libra" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Customize your dark theme here. -->
-        <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
+        <item name="colorPrimary">@color/primary_light</item>
+        <item name="colorPrimaryDark">@color/primary_dark</item>
+        <item name="colorPrimaryVariant">@color/primary</item>
+        <item name="colorSecondary">@color/accent</item>
+        <item name="colorSurface">#121212</item>
+        <item name="colorOnPrimary">@color/text_primary</item>
+        <item name="colorOnSecondary">@color/text_primary</item>
+        <item name="colorOnBackground">@color/text_light</item>
+        <item name="android:colorBackground">#121212</item>
+        <item name="colorOnSurface">@color/text_light</item>
+        <item name="android:statusBarColor">@color/primary_dark</item>
+        <item name="android:navigationBarColor">@color/primary_dark</item>
     </style>
 </resources>

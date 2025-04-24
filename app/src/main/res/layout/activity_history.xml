@@ -18,7 +18,7 @@
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="@color/ic_launcher_background"
+            android:background="@color/primary"
             app:title="Transaction History"
             app:titleTextColor="@color/white" />
 
@@ -120,8 +120,11 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/white"
-        app:itemIconTint="@color/ic_launcher_background"
-        app:itemTextColor="@color/ic_launcher_background"
+        app:itemIconTint="@android:color/black"
+        app:itemTextColor="@android:color/black"
+        app:itemActiveIndicatorStyle="@null"
+        app:itemRippleColor="@color/primary_light"
+        app:labelVisibilityMode="labeled"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

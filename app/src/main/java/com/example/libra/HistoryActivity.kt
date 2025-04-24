@@ -99,6 +99,7 @@ class HistoryActivity : AppCompatActivity(), TransactionAdapter.OnTransactionCli
         recyclerView.adapter = adapter
     }
     
+    @Suppress("DEPRECATION")
     private fun setupBottomNavigation() {
         bottomNavigation = findViewById(R.id.bottomNavigation)
         bottomNavigation.selectedItemId = R.id.navigation_history

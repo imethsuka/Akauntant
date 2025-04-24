@@ -131,6 +131,7 @@ class AddTransactionActivity : AppCompatActivity() {
         }
     }
     
+    @Suppress("DEPRECATION")
     private fun setupBottomNavigation() {
         bottomNavigation = findViewById(R.id.bottomNavigation)
         bottomNavigation.selectedItemId = R.id.navigation_add

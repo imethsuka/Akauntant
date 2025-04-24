@@ -136,7 +136,11 @@ class MainActivity : AppCompatActivity() {
         categoryPieChart.isRotationEnabled = true
     }
     
+    @Suppress("DEPRECATION")
     private fun setupBottomNavigation() {
+        bottomNavigation = findViewById(R.id.bottomNavigation)
+        bottomNavigation.selectedItemId = R.id.navigation_home
+        
         bottomNavigation.setOnItemSelectedListener { menuItem ->
             when (menuItem.itemId) {
                 R.id.navigation_home -> {
@@ -146,22 +150,26 @@ class MainActivity : AppCompatActivity() {
                 R.id.navigation_history -> {
                     startActivity(Intent(this, HistoryActivity::class.java))
                     overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
-                    false
+                    finish()
+                    true
                 }
                 R.id.navigation_add -> {
                     startActivity(Intent(this, AddTransactionActivity::class.java))
                     overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
-                    false
+                    finish()
+                    true
                 }
                 R.id.navigation_report -> {
                     startActivity(Intent(this, ReportActivity::class.java))
                     overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
-                    false
+                    finish()
+                    true
                 }
                 R.id.navigation_settings -> {
                     startActivity(Intent(this, SettingsActivity::class.java))
                     overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
-                    false
+                    finish()
+                    true
                 }
                 else -> false
             }

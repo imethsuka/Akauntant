@@ -426,6 +426,7 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
+    @Suppress("DEPRECATION")
     private fun restoreTransactions() {
         try {
             // Create intent to pick a file
@@ -442,6 +443,7 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
+    @Suppress("DEPRECATION")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         
@@ -560,6 +562,7 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
     
+    @Suppress("DEPRECATION")
     private fun setupBottomNavigation() {
         val bottomNavigation = findViewById<BottomNavigationView>(R.id.bottomNavigation)
         bottomNavigation.selectedItemId = R.id.navigation_settings
